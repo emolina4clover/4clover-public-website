@@ -13,11 +13,12 @@ jobs:
       - name: 'Checkout CODE 🛬'
         uses: actions/checkout@v4
 
-      - name: Login to Docker Hub
+      - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -28,7 +29,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: beartrack/4clover-website:qa
+          tags: ghcr.io/${{ github.repository_owner }}/public-website:qa
 
       - name: Build and push Docker image for Production
         if: github.ref == 'refs/heads/main'
@@ -36,7 +37,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: beartrack/4clover-website:latest
+          tags: ghcr.io/${{ github.repository_owner }}/public-website:latest
 
   deploy-prod2:
     runs-on: ubuntu-latest
