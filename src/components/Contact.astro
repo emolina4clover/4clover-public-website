@@ -1,8 +1,8 @@
 ---
 // Reemplaza YOUR_FORM_ID con tu ID de Formspree (https://formspree.io)
-const FORMSPREE_ID = 'YOUR_FORM_ID';
+const FORMSPREE_ID = 'xykdbgzp';
 const WHATSAPP_NUMBER = '56942405123';
-const CALENDLY_URL = 'https://calendly.com/4clover';
+const CALENDLY_URL = 'https://calendly.com/eduardo-molina-4clover/30min';
 const EMAIL = 'contacto@4clover.cl';
 ---
 
@@ -219,7 +219,7 @@ const EMAIL = 'contacto@4clover.cl';
   // Calendly popup
   document.getElementById('contact-calendly-btn')?.addEventListener('click', () => {
     const btn = document.getElementById('contact-calendly-btn') as HTMLButtonElement;
-    const url = btn.dataset.calendlyUrl || 'https://calendly.com/4clover';
+    const url = btn.dataset.calendlyUrl || 'https://calendly.com/eduardo-molina-4clover/30min';
     if (typeof (window as any).Calendly !== 'undefined') {
       (window as any).Calendly.initPopupWidget({ url });
     } else {

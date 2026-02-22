@@ -1,5 +1,5 @@
 ---
-const CALENDLY_URL = 'https://calendly.com/4clover';
+const CALENDLY_URL = 'https://calendly.com/eduardo-molina-4clover/30min';
 ---
 
 <section
@@ -82,7 +82,7 @@ const CALENDLY_URL = 'https://calendly.com/4clover';
 <script>
   document.getElementById('hero-calendly-btn')?.addEventListener('click', () => {
     const btn = document.getElementById('hero-calendly-btn') as HTMLButtonElement;
-    const url = btn.dataset.calendlyUrl || 'https://calendly.com/4clover';
+    const url = btn.dataset.calendlyUrl || 'https://calendly.com/eduardo-molina-4clover/30min';
     if (typeof (window as any).Calendly !== 'undefined') {
       (window as any).Calendly.initPopupWidget({ url });
     } else {
