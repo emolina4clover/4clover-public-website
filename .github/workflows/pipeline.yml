@@ -82,8 +82,9 @@ jobs:
 
           TS=$(date +%s)
           NONCE=$(uuidgen | tr '[:upper:]' '[:lower:]')
-          BODY=$(jq -cn --arg service "4clover-website" --arg tag "latest" --arg ts "$TS" --arg nonce "$NONCE" \
-            '{service:$service, tag:$tag, ts:($ts|tonumber), nonce:$nonce}')
+          IMAGE="ghcr.io/${{ github.repository_owner }}/public-website"
+          BODY=$(jq -cn --arg service "4clover-website" --arg tag "latest" --arg image "$IMAGE" --arg ts "$TS" --arg nonce "$NONCE" \
+            '{service:$service, tag:$tag, image:$image, ts:($ts|tonumber), nonce:$nonce}')
 
           SIG_HEX=$(printf "%s" "$BODY" | openssl dgst -sha256 -hmac "$HMAC" | awk '{print $2}')
           SIG="sha256=${SIG_HEX}"
