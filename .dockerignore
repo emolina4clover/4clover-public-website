@@ -1,0 +1,16 @@
+node_modules
+dist
+.astro
+.git
+.gitignore
+*.md
+.env
+.env.*
+docker-compose*.yml
+Dockerfile*
+nginx.conf
+.dockerignore
+.vscode
+.cursor
+*.log
+npm-debug.log*

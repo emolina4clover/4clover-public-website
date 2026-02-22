@@ -1,0 +1,38 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Navbar from '../components/Navbar.astro';
+import Hero from '../components/Hero.astro';
+import WhyUs from '../components/WhyUs.astro';
+import Services from '../components/Services.astro';
+import Industries from '../components/Industries.astro';
+import About from '../components/About.astro';
+import Contact from '../components/Contact.astro';
+import WhatsAppButton from '../components/WhatsAppButton.astro';
+import Footer from '../components/Footer.astro';
+import ScrollAnimations from '../components/ScrollAnimations.astro';
+import '../styles/global.css';
+---
+
+<Layout
+  title="4Clover Technology - Soluciones Empresariales para PYMEs"
+  description="Llevamos Cloud Computing, Desarrollo de Software y Outsourcing TI de clase mundial a las PYMEs que mueven a Chile. Tecnología de nivel empresarial para el crecimiento de tu empresa."
+>
+  <!-- Calendly widget script (carga diferida) -->
+  <link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet" />
+  <script src="https://assets.calendly.com/assets/external/widget.js" type="text/javascript" defer></script>
+
+  <Navbar />
+
+  <main>
+    <Hero />
+    <WhyUs />
+    <Services />
+    <Industries />
+    <About />
+    <Contact />
+  </main>
+
+  <Footer />
+  <WhatsAppButton />
+  <ScrollAnimations />
+</Layout>

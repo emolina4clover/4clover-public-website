@@ -1,0 +1,176 @@
+---
+const navLinks = [
+  { href: '#inicio', label: 'Inicio' },
+  { href: '#servicios', label: 'Servicios' },
+  { href: '#industrias', label: 'Industrias' },
+  { href: '#nosotros', label: 'Nosotros' },
+];
+---
+
+<nav
+  id="navbar"
+  class="sticky top-0 z-50 bg-surface-light/90 dark:bg-background-dark/90 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 transition-colors duration-300"
+>
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-20">
+      <!-- Logo -->
+      <a href="#inicio" class="flex-shrink-0 flex items-center gap-2">
+        <img
+          alt="4Clover Technology Logo"
+          class="h-10 w-auto dark:hidden"
+          src="/logos/logo-dark.png"
+          width="160"
+          height="40"
+        />
+        <img
+          alt="4Clover Technology Logo"
+          class="h-10 w-auto hidden dark:block"
+          src="/logos/logo-light.png"
+          width="160"
+          height="40"
+        />
+      </a>
+
+      <!-- Desktop Nav -->
+      <div class="hidden md:flex items-center space-x-8">
+        {navLinks.map((link) => (
+          <a
+            href={link.href}
+            class="text-text-muted-light dark:text-gray-300 hover:text-primary dark:hover:text-primary font-medium transition-colors duration-200 relative group"
+          >
+            {link.label}
+            <span class="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
+          </a>
+        ))}
+
+        <a
+          href="#contacto"
+          class="bg-primary hover:bg-primary-hover text-white px-5 py-2.5 rounded-full font-medium transition-all duration-200 shadow-lg shadow-primary/30 hover:-translate-y-0.5"
+        >
+          Contáctanos
+        </a>
+
+        <!-- Dark mode toggle -->
+        <button
+          id="theme-toggle"
+          aria-label="Cambiar tema"
+          class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+        >
+          <span class="material-icons text-gray-600 dark:text-gray-400 text-xl" id="theme-icon">dark_mode</span>
+        </button>
+      </div>
+
+      <!-- Mobile: toggle + hamburger -->
+      <div class="md:hidden flex items-center gap-2">
+        <button
+          id="theme-toggle-mobile"
+          aria-label="Cambiar tema"
+          class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+        >
+          <span class="material-icons text-gray-600 dark:text-gray-400 text-xl" id="theme-icon-mobile">dark_mode</span>
+        </button>
+
+        <button
+          id="mobile-menu-btn"
+          aria-label="Abrir menú"
+          aria-expanded="false"
+          class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors"
+        >
+          <span class="material-icons text-gray-600 dark:text-gray-400 text-2xl" id="menu-icon">menu</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Mobile Menu -->
+  <div
+    id="mobile-menu"
+    class="md:hidden hidden border-t border-gray-200 dark:border-gray-800 bg-surface-light dark:bg-background-dark"
+  >
+    <div class="px-4 py-4 space-y-1">
+      {navLinks.map((link) => (
+        <a
+          href={link.href}
+          class="mobile-nav-link block px-4 py-3 rounded-lg text-text-muted-light dark:text-gray-300 hover:text-primary hover:bg-primary/5 font-medium transition-all"
+        >
+          {link.label}
+        </a>
+      ))}
+      <a
+        href="#contacto"
+        class="mobile-nav-link block mt-2 px-4 py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-semibold text-center transition-colors"
+      >
+        Contáctanos
+      </a>
+    </div>
+  </div>
+</nav>
+
+<script>
+  function initNavbar() {
+    // Theme toggle
+    function getThemeIcon(isDark: boolean) {
+      return isDark ? 'light_mode' : 'dark_mode';
+    }
+
+    function applyTheme(isDark: boolean) {
+      const icons = document.querySelectorAll<HTMLElement>('#theme-icon, #theme-icon-mobile');
+      if (isDark) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+      }
+      icons.forEach((icon) => {
+        icon.textContent = getThemeIcon(isDark);
+      });
+    }
+
+    const isDark = document.documentElement.classList.contains('dark');
+    const icons = document.querySelectorAll<HTMLElement>('#theme-icon, #theme-icon-mobile');
+    icons.forEach((icon) => { icon.textContent = getThemeIcon(isDark); });
+
+    document.getElementById('theme-toggle')?.addEventListener('click', () => {
+      applyTheme(!document.documentElement.classList.contains('dark'));
+    });
+
+    document.getElementById('theme-toggle-mobile')?.addEventListener('click', () => {
+      applyTheme(!document.documentElement.classList.contains('dark'));
+    });
+
+    // Mobile menu
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuIcon = document.getElementById('menu-icon');
+
+    mobileMenuBtn?.addEventListener('click', () => {
+      const isOpen = !mobileMenu?.classList.contains('hidden');
+      mobileMenu?.classList.toggle('hidden', isOpen);
+      if (menuIcon) menuIcon.textContent = isOpen ? 'menu' : 'close';
+      mobileMenuBtn.setAttribute('aria-expanded', String(!isOpen));
+    });
+
+    // Cerrar menu al hacer clic en un link
+    document.querySelectorAll('.mobile-nav-link').forEach((link) => {
+      link.addEventListener('click', () => {
+        mobileMenu?.classList.add('hidden');
+        if (menuIcon) menuIcon.textContent = 'menu';
+        mobileMenuBtn?.setAttribute('aria-expanded', 'false');
+      });
+    });
+
+    // Navbar scroll shadow
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 10) {
+        navbar?.classList.add('shadow-md');
+      } else {
+        navbar?.classList.remove('shadow-md');
+      }
+    });
+  }
+
+  initNavbar();
+  document.addEventListener('astro:after-swap', initNavbar);
+</script>

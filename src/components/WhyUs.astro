@@ -1,0 +1,66 @@
+---
+const features = [
+  {
+    icon: 'location_on',
+    title: 'Cercanía Local',
+    description: 'Entendemos el mercado chileno y sus desafíos particulares. Soporte en tu zona horaria, con profesionales que hablan tu idioma.',
+  },
+  {
+    icon: 'trending_up',
+    title: 'Escalabilidad Real',
+    description: 'Soluciones diseñadas para crecer contigo, desde la primera línea de código hasta arquitecturas de nivel enterprise.',
+  },
+  {
+    icon: 'security',
+    title: 'Seguridad Robusta',
+    description: 'Estándares empresariales aplicados a cada proyecto para proteger tus datos e infraestructura las 24 horas.',
+  },
+  {
+    icon: 'groups',
+    title: 'Talento Experto',
+    description: 'Acceso a profesionales senior validados técnicamente para tus necesidades, disponibles de inmediato.',
+  },
+];
+---
+
+<section class="py-24 bg-white dark:bg-surface-dark transition-colors duration-300">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+    <!-- Header -->
+    <div class="text-center mb-16 animate-on-scroll">
+      <h2 class="text-base text-primary dark:text-emerald-400 font-semibold tracking-widest uppercase mb-3">
+        Por qué 4Clover
+      </h2>
+      <p class="text-3xl sm:text-4xl font-display font-bold text-text-light dark:text-white leading-tight text-balance">
+        Más que proveedores, somos socios estratégicos
+      </p>
+    </div>
+
+    <!-- Cards grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {features.map((feature, i) => (
+        <div
+          class="stagger-item card-hover group cursor-default"
+          style={`transition-delay: ${i * 100}ms`}
+        >
+          <!-- Icon -->
+          <div class="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary group-hover:scale-110 transition-all duration-300 text-primary group-hover:text-white">
+            <span class="material-icons text-3xl">{feature.icon}</span>
+          </div>
+
+          <!-- Content -->
+          <h3 class="text-xl font-bold text-text-light dark:text-white mb-3">
+            {feature.title}
+          </h3>
+          <p class="text-text-muted-light dark:text-gray-400 leading-relaxed">
+            {feature.description}
+          </p>
+
+          <!-- Accent line -->
+          <div class="mt-6 h-0.5 w-0 bg-primary group-hover:w-full transition-all duration-500 rounded-full"></div>
+        </div>
+      ))}
+    </div>
+
+  </div>
+</section>

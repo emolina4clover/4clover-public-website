@@ -1,0 +1,279 @@
+---
+// Reemplaza YOUR_FORM_ID con tu ID de Formspree (https://formspree.io)
+const FORMSPREE_ID = 'YOUR_FORM_ID';
+const WHATSAPP_NUMBER = '56942405123';
+const CALENDLY_URL = 'https://calendly.com/4clover';
+const EMAIL = 'contacto@4clover.cl';
+---
+
+<section
+  class="py-24 bg-white dark:bg-surface-dark relative overflow-hidden transition-colors duration-300"
+  id="contacto"
+>
+  <!-- Decorative background -->
+  <div class="absolute top-0 right-0 w-1/3 h-full bg-primary/5 -skew-x-12 pointer-events-none hidden lg:block"></div>
+  <div class="absolute bottom-0 left-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+
+    <!-- Header -->
+    <div class="text-center mb-16 animate-on-scroll">
+      <h2 class="text-base text-primary dark:text-emerald-400 font-semibold tracking-widest uppercase mb-3">
+        Contacto
+      </h2>
+      <p class="text-3xl sm:text-4xl font-display font-bold text-text-light dark:text-white leading-tight text-balance">
+        Hablemos de tu próximo desafío
+      </p>
+    </div>
+
+    <div class="grid lg:grid-cols-2 gap-12 lg:gap-16">
+
+      <!-- Form -->
+      <div class="animate-on-scroll from-left bg-background-light dark:bg-background-dark p-8 md:p-10 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800">
+        <h3 class="text-xl font-display font-bold text-text-light dark:text-white mb-2">
+          Envíanos un mensaje
+        </h3>
+        <p class="text-text-muted-light dark:text-gray-400 mb-8 text-sm">
+          Nuestro equipo te contactará en menos de 24 horas hábiles.
+        </p>
+
+        <!-- Success message (hidden by default) -->
+        <div id="form-success" class="hidden mb-6 p-4 bg-primary/10 border border-primary/20 rounded-xl text-primary dark:text-emerald-400 flex items-center gap-3">
+          <span class="material-icons">check_circle</span>
+          <p class="font-medium">¡Mensaje enviado! Te contactaremos pronto.</p>
+        </div>
+
+        <form
+          id="contact-form"
+          action={`https://formspree.io/f/${FORMSPREE_ID}`}
+          method="POST"
+          class="space-y-5"
+          novalidate
+        >
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-medium text-text-muted-light dark:text-gray-300 mb-2" for="nombre">
+                Nombre <span class="text-red-500">*</span>
+              </label>
+              <input
+                class="w-full px-4 py-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-text-light dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-600"
+                id="nombre"
+                name="nombre"
+                placeholder="Tu nombre"
+                type="text"
+                required
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-text-muted-light dark:text-gray-300 mb-2" for="empresa">
+                Empresa
+              </label>
+              <input
+                class="w-full px-4 py-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-text-light dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-600"
+                id="empresa"
+                name="empresa"
+                placeholder="Nombre de tu empresa"
+                type="text"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-text-muted-light dark:text-gray-300 mb-2" for="email">
+              Email Corporativo <span class="text-red-500">*</span>
+            </label>
+            <input
+              class="w-full px-4 py-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-text-light dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-600"
+              id="email"
+              name="email"
+              placeholder="tu@empresa.cl"
+              type="email"
+              required
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-text-muted-light dark:text-gray-300 mb-2" for="servicio">
+              Servicio de interés
+            </label>
+            <select
+              class="w-full px-4 py-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-text-light dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              id="servicio"
+              name="servicio"
+            >
+              <option value="">Selecciona un servicio...</option>
+              <option value="cloud">Cloud Computing</option>
+              <option value="software">Desarrollo de Software</option>
+              <option value="outsourcing">Outsourcing TI</option>
+              <option value="consultoria">Consultoría Tecnológica</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-text-muted-light dark:text-gray-300 mb-2" for="mensaje">
+              ¿Cómo podemos ayudarte? <span class="text-red-500">*</span>
+            </label>
+            <textarea
+              class="w-full px-4 py-3 rounded-xl bg-white dark:bg-surface-dark border border-gray-200 dark:border-gray-700 text-text-light dark:text-white focus:ring-2 focus:ring-primary focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-600 resize-none"
+              id="mensaje"
+              name="mensaje"
+              placeholder="Cuéntanos sobre tu proyecto o necesidad..."
+              rows="4"
+              required
+            ></textarea>
+          </div>
+
+          <!-- Honeypot anti-spam -->
+          <input type="text" name="_gotcha" class="hidden" aria-hidden="true" />
+
+          <button
+            type="submit"
+            id="submit-btn"
+            class="w-full bg-primary hover:bg-primary-hover text-white font-bold py-4 px-6 rounded-xl transition-all hover:-translate-y-0.5 shadow-lg shadow-primary/30 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+          >
+            <span id="submit-text">Enviar Mensaje</span>
+            <span class="material-icons text-lg" id="submit-icon">send</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Contact info + Calendly -->
+      <div class="animate-on-scroll from-right flex flex-col justify-center space-y-8">
+
+        <div>
+          <h3 class="text-2xl font-display font-bold text-text-light dark:text-white mb-2">
+            Información de Contacto
+          </h3>
+          <p class="text-text-muted-light dark:text-gray-400 mb-6">
+            Estamos listos para escalar tu negocio con tecnología.
+          </p>
+
+          <div class="space-y-4">
+            <!-- Email -->
+            <a
+              href={`mailto:${EMAIL}`}
+              class="flex items-center p-4 rounded-xl bg-background-light dark:bg-background-dark border border-gray-100 dark:border-gray-800 hover:border-primary/40 transition-all duration-200 group"
+            >
+              <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all flex-shrink-0">
+                <span class="material-icons">email</span>
+              </div>
+              <div class="ml-4">
+                <p class="text-xs text-text-muted-light dark:text-gray-400 uppercase tracking-wide">Email</p>
+                <p class="font-semibold text-text-light dark:text-white">{EMAIL}</p>
+              </div>
+              <span class="material-icons ml-auto text-gray-400 group-hover:text-primary transition-colors text-sm">open_in_new</span>
+            </a>
+
+            <!-- WhatsApp -->
+            <a
+              href={`https://wa.me/${WHATSAPP_NUMBER}?text=Hola%2C%20me%20gustar%C3%ADa%20conocer%20m%C3%A1s%20sobre%20los%20servicios%20de%204Clover%20Technology.`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center p-4 rounded-xl bg-background-light dark:bg-background-dark border border-gray-100 dark:border-gray-800 hover:border-green-500/40 transition-all duration-200 group"
+            >
+              <div class="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-600 group-hover:bg-green-500 group-hover:text-white transition-all flex-shrink-0">
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+              </div>
+              <div class="ml-4">
+                <p class="text-xs text-text-muted-light dark:text-gray-400 uppercase tracking-wide">WhatsApp</p>
+                <p class="font-semibold text-text-light dark:text-white">+56 9 4240 5123</p>
+              </div>
+              <span class="material-icons ml-auto text-gray-400 group-hover:text-green-500 transition-colors text-sm">open_in_new</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Calendly CTA -->
+        <div class="p-8 rounded-2xl bg-gradient-to-br from-gray-900 to-primary/80 dark:from-gray-900 dark:to-primary/40 text-white relative overflow-hidden border border-primary/30">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+          <div class="absolute bottom-0 left-0 w-24 h-24 bg-primary/20 rounded-full blur-xl translate-y-1/2 -translate-x-1/2 pointer-events-none"></div>
+
+          <div class="relative z-10">
+            <div class="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4">
+              <span class="material-icons text-white text-2xl">calendar_month</span>
+            </div>
+            <h4 class="text-xl font-display font-bold mb-2">¿Prefieres una reunión?</h4>
+            <p class="text-white/70 mb-6 text-sm leading-relaxed">
+              Agenda una videollamada de 30 minutos con nuestros expertos, sin compromiso.
+            </p>
+            <button
+              id="contact-calendly-btn"
+              data-calendly-url={CALENDLY_URL}
+              class="inline-flex items-center justify-center w-full py-3.5 bg-white text-primary font-bold rounded-xl hover:bg-gray-100 active:scale-95 transition-all duration-200 shadow-lg"
+            >
+              <span class="material-icons mr-2 text-primary">calendar_month</span>
+              Agendar en Calendly
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Calendly popup
+  document.getElementById('contact-calendly-btn')?.addEventListener('click', () => {
+    const btn = document.getElementById('contact-calendly-btn') as HTMLButtonElement;
+    const url = btn.dataset.calendlyUrl || 'https://calendly.com/4clover';
+    if (typeof (window as any).Calendly !== 'undefined') {
+      (window as any).Calendly.initPopupWidget({ url });
+    } else {
+      window.open(url, '_blank');
+    }
+  });
+
+  // Form submission with AJAX
+  const form = document.getElementById('contact-form') as HTMLFormElement;
+  const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
+  const submitText = document.getElementById('submit-text') as HTMLSpanElement;
+  const submitIcon = document.getElementById('submit-icon') as HTMLSpanElement;
+  const successMsg = document.getElementById('form-success') as HTMLDivElement;
+
+  form?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Basic validation
+    const nombre = (form.querySelector('#nombre') as HTMLInputElement).value.trim();
+    const email = (form.querySelector('#email') as HTMLInputElement).value.trim();
+    const mensaje = (form.querySelector('#mensaje') as HTMLTextAreaElement).value.trim();
+
+    if (!nombre || !email || !mensaje) {
+      return;
+    }
+
+    // Loading state
+    submitBtn.disabled = true;
+    submitText.textContent = 'Enviando...';
+    submitIcon.textContent = 'hourglass_empty';
+
+    try {
+      const formData = new FormData(form);
+      const response = await fetch(form.action, {
+        method: 'POST',
+        body: formData,
+        headers: { Accept: 'application/json' },
+      });
+
+      if (response.ok) {
+        form.reset();
+        successMsg.classList.remove('hidden');
+        submitBtn.disabled = false;
+        submitText.textContent = 'Enviar Mensaje';
+        submitIcon.textContent = 'send';
+        // Scroll to success
+        successMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        throw new Error('Error en el envío');
+      }
+    } catch {
+      submitBtn.disabled = false;
+      submitText.textContent = 'Reintentar';
+      submitIcon.textContent = 'refresh';
+    }
+  });
+</script>
