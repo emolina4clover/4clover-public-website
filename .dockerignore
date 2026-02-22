@@ -8,7 +8,6 @@ dist
 .env.*
 docker-compose*.yml
 Dockerfile*
-nginx.conf
 .dockerignore
 .vscode
 .cursor
