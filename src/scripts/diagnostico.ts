@@ -12,6 +12,11 @@ import { LEVELS, averagePct, levelFor, optionsOf, scoreOf } from '../lib/diagnos
 import { iconSvg } from '../lib/diagnostico/icons';
 import type { AnswerOut, BlockOut, Diagnostico, Question, SubmissionPayload } from '../lib/diagnostico/types';
 
+// El cifrado (Web Crypto) solo existe en HTTPS. nginx ya redirige; esto es el respaldo.
+if (location.protocol === 'http:' && !['localhost', '127.0.0.1', '[::1]'].includes(location.hostname)) {
+  location.replace(`https://${location.host}${location.pathname}${location.search}${location.hash}`);
+}
+
 /* ------------------------------------------------------------------ */
 /* Config y estado                                                     */
 /* ------------------------------------------------------------------ */
@@ -87,8 +92,18 @@ function loadDraft(): State | null {
   }
 }
 
+/** ¿Hay algo que valga la pena retomar? (navegar sin responder no cuenta). */
+function hasContent(s: State): boolean {
+  const filled = (v: unknown) => (Array.isArray(v) ? v.length > 0 : typeof v === 'string' && v.trim().length > 0);
+  return (
+    Object.values(s.answers).some((a) => filled(a.v) || filled(a.d)) ||
+    ['nombre', 'cargo', 'correo', 'telefono'].some((k) => filled(s.ident[k as IdentKey])) ||
+    Object.values(s.prio.why).some(filled) ||
+    s.prio.touched
+  );
+}
+
 let state: State = loadDraft() ?? freshState();
-let hadDraft = !!loadDraft();
 let current = 'intro';
 let submitted = false;
 let lastArmored: string | null = null;
@@ -140,24 +155,40 @@ const saveEl = $('dg-save');
 let saveTimer: number | undefined;
 let saveMsgTimer: number | undefined;
 
+function writeDraft(showStatus: boolean): void {
+  window.clearTimeout(saveTimer);
+  saveTimer = undefined;
+  if (submitted) return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    return; /* almacenamiento bloqueado (modo privado, etc.): se sigue sin guardar */
+  }
+  if (!showStatus) return;
+  saveEl.innerHTML = `${iconSvg('check', 'w-3.5 h-3.5 text-dg-brand')}<span class="hidden sm:inline">Avance guardado</span>`;
+  saveEl.classList.replace('hidden', 'inline-flex');
+  window.clearTimeout(saveMsgTimer);
+  saveMsgTimer = window.setTimeout(() => saveEl.classList.replace('inline-flex', 'hidden'), 1800);
+}
+
 function save(): void {
   if (submitted) return;
   window.clearTimeout(saveTimer);
-  saveTimer = window.setTimeout(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      saveEl.innerHTML = `${iconSvg('check', 'w-3.5 h-3.5 text-dg-brand')}<span class="hidden sm:inline">Avance guardado</span>`;
-      saveEl.classList.replace('hidden', 'inline-flex');
-      window.clearTimeout(saveMsgTimer);
-      saveMsgTimer = window.setTimeout(() => saveEl.classList.replace('inline-flex', 'hidden'), 1800);
-    } catch {
-      /* almacenamiento bloqueado (modo privado, etc.): se sigue sin guardar */
-    }
-  }, 350);
+  saveTimer = window.setTimeout(() => writeDraft(true), 350);
 }
+
+/** Guarda de inmediato lo pendiente si el usuario cierra o cambia de pestaña. */
+function flushSave(): void {
+  if (saveTimer !== undefined) writeDraft(false);
+}
+window.addEventListener('pagehide', flushSave);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushSave();
+});
 
 function clearDraft(): void {
   window.clearTimeout(saveTimer);
+  saveTimer = undefined;
   try {
     localStorage.removeItem(STORAGE_KEY);
   } catch {
@@ -230,6 +261,7 @@ function hydrate(): void {
     }
   }
   renumberPrio();
+  syncPrioOk();
   $<HTMLInputElement>('dg-consent').checked = state.consent;
 }
 
@@ -273,8 +305,9 @@ function onFieldChange(e: Event): void {
     state.prio.why[name.slice(2)] = el.value;
   } else if (name === 'consent') {
     state.consent = (el as HTMLInputElement).checked;
-    if (state.consent) $('dg-errors').hidden = true;
   }
+  // Si hay errores de envío a la vista, se recalculan (no se ocultan todos de golpe).
+  if (!$('dg-errors').hidden) renderErrors(validateForSubmit());
   updateProgress();
   save();
 }
@@ -327,10 +360,18 @@ function renumberPrio(): void {
   });
 }
 
+function syncPrioOk(): void {
+  const b = $('dg-prio-ok');
+  b.innerHTML = state.prio.touched
+    ? `${iconSvg('check', 'w-4 h-4')}<span>Orden confirmado</span>`
+    : '<span>Este orden está bien</span>';
+}
+
 function commitPrio(announce?: HTMLLIElement): void {
   state.prio.order = ([...prioList.children] as HTMLLIElement[]).map((li) => li.dataset.domain!);
   state.prio.touched = true;
   renumberPrio();
+  syncPrioOk();
   if (announce) {
     const pos = state.prio.order.indexOf(announce.dataset.domain!) + 1;
     $('dg-prio-live').textContent = `${announce.dataset.domain} en la posición ${pos}`;
@@ -338,6 +379,11 @@ function commitPrio(announce?: HTMLLIElement): void {
   updateProgress();
   save();
 }
+
+$('dg-prio-ok').addEventListener('click', () => {
+  commitPrio();
+  $('dg-prio-live').textContent = 'Orden de prioridades confirmado';
+});
 
 prioList.addEventListener('click', (e) => {
   const btn = (e.target as Element).closest<HTMLButtonElement>('[data-move]');
@@ -447,7 +493,7 @@ function show(id: string, opts: { push?: boolean; focus?: boolean } = {}): void 
     });
     jump.value = id;
     const i = STEPS.indexOf(id);
-    $('dg-stepinfo').textContent = `Paso ${i + 1} de ${STEPS.length}`;
+    $('dg-stepinfo').innerHTML = `<span class="hidden min-[400px]:inline">Paso </span>${i + 1} de ${STEPS.length}`;
     $('dg-next').hidden = id === 'revision';
     $('dg-next-label').textContent = id === 'cierre' ? 'Revisar y enviar' : 'Siguiente';
     if (id === 'revision') renderReview();
@@ -512,7 +558,7 @@ function goToQuestion(qid: string): void {
 /* Bienvenida                                                          */
 /* ------------------------------------------------------------------ */
 
-const resumable = () => hadDraft || ALL_QUESTIONS.some(isAnswered) || state.ident.nombre.trim().length > 0;
+const resumable = () => hasContent(state);
 
 function renderIntro(): void {
   const pct = Math.round(totalProgress() * 100);
@@ -543,7 +589,6 @@ $('dg-reset').addEventListener('click', () => {
   label.textContent = 'Empezar de nuevo';
   clearDraft();
   state = freshState();
-  hadDraft = false;
   form.reset();
   document.querySelectorAll<HTMLElement>('.dg-detail-toggle').forEach((b) => {
     b.hidden = false;
@@ -554,6 +599,7 @@ $('dg-reset').addEventListener('click', () => {
   hydrate();
   updateProgress();
   renderIntro();
+  $('dg-start').focus(); // el botón que tenía el foco quedó oculto
 });
 
 /* ------------------------------------------------------------------ */
@@ -579,7 +625,7 @@ function renderReview(): void {
     const required = step === 'identificacion' && !ok;
     const chips = missing
       .slice(0, 8)
-      .map((id) => `<button type="button" data-goto-q="${esc(id)}" class="rounded-md bg-dg-sunken px-1.5 py-0.5 text-xs tabular-nums text-dg-muted hover:text-dg-ink hover:bg-dg-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand">${esc(id)}</button>`)
+      .map((id) => `<button type="button" data-goto-q="${esc(id)}" class="inline-flex items-center justify-center min-h-8 min-w-8 rounded-md bg-dg-sunken px-2 text-xs tabular-nums text-dg-muted hover:text-dg-ink hover:bg-dg-line focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand">${esc(id)}</button>`)
       .join('');
     const more = missing.length > 8 ? `<span class="text-xs text-dg-muted">+${missing.length - 8}</span>` : '';
     rows.push(`
@@ -674,6 +720,7 @@ function setBusy(text: string | null): void {
   submitBtn.disabled = !!text;
   $('dg-submit-label').textContent = text ?? 'Cifrar y enviar';
   $('dg-submit-icon').innerHTML = text ? iconSvg('loader', 'w-4 h-4 dg-spin') : iconSvg('send', 'w-4 h-4');
+  $('dg-submit-status').textContent = text ?? ''; // para lectores de pantalla
 }
 
 function showFail(title: string, text: string, canDownload: boolean): void {
@@ -681,7 +728,9 @@ function showFail(title: string, text: string, canDownload: boolean): void {
   $('dg-fail-text').textContent = text;
   $('dg-download-enc').hidden = !canDownload;
   $('dg-fail').hidden = false;
-  $('dg-fail').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  // Centrado para que la barra fija inferior no tape los botones; el foco va al aviso.
+  $('dg-fail').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  $('dg-fail-title').focus({ preventScroll: true });
 }
 
 function validateForSubmit(): string[] {
@@ -693,17 +742,22 @@ function validateForSubmit(): string[] {
   return errs;
 }
 
+function renderErrors(errs: string[]): void {
+  const box = $('dg-errors');
+  box.hidden = errs.length === 0;
+  box.innerHTML = errs.length
+    ? `<p class="font-semibold">Antes de enviar:</p><ul class="mt-1 list-disc pl-5 space-y-0.5">${errs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`
+    : '';
+}
+
 async function submit(): Promise<void> {
   $('dg-fail').hidden = true;
   const errs = validateForSubmit();
-  const box = $('dg-errors');
+  renderErrors(errs);
   if (errs.length) {
-    box.innerHTML = `<p class="font-semibold">Antes de enviar:</p><ul class="mt-1 list-disc pl-5 space-y-0.5">${errs.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
-    box.hidden = false;
-    box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    $('dg-errors').scrollIntoView({ block: 'center', behavior: 'smooth' });
     return;
   }
-  box.hidden = true;
 
   if (!cryptoAvailable()) {
     showFail('Este navegador no puede cifrar.', 'Abre el enlace en un navegador actualizado (Chrome, Edge, Safari o Firefox) mediante https.', false);
@@ -721,6 +775,7 @@ async function submit(): Promise<void> {
   }
 
   setBusy('Enviando…');
+  let status = 0;
   try {
     const honeypot = (form.elements.namedItem('_gotcha') as HTMLInputElement).value;
     const res = await fetch(cfg.endpoint, {
@@ -737,12 +792,18 @@ async function submit(): Promise<void> {
         _gotcha: honeypot,
       }),
     });
+    status = res.status;
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
   } catch {
     setBusy(null);
+    const fallback = `descarga la respuesta cifrada y envíala a ${cfg.contactEmail}: sigue protegida, solo 4Clover puede abrirla.`;
     showFail(
       'No pudimos enviar tus respuestas.',
-      `Revisa tu conexión e intenta de nuevo. Si persiste, descarga la respuesta cifrada y envíala a ${cfg.contactEmail}: sigue protegida, solo 4Clover puede abrirla.`,
+      status === 0
+        ? `Revisa tu conexión e intenta de nuevo. Si persiste, ${fallback}`
+        : status >= 500
+          ? `El servicio de envío no está respondiendo (error ${status}). Intenta en unos minutos o ${fallback}`
+          : `El servicio de envío rechazó la respuesta (error ${status}); no es un problema de tu conexión. Por favor ${fallback}`,
       true,
     );
     return;
@@ -812,8 +873,11 @@ function radarSvg(items: { label: string; num: number; pct: number | null }[]): 
       const cos = Math.cos((-90 + (360 / n) * i) * (Math.PI / 180));
       const anchor = cos > 0.25 ? 'start' : cos < -0.25 ? 'end' : 'middle';
       const dy = y < cy - R * 0.8 ? -2 : y > cy + R * 0.8 ? 12 : 4;
-      return `<text x="${x.toFixed(1)}" y="${(y + dy).toFixed(1)}" text-anchor="${anchor}" class="fill-dg-muted text-[17px] font-semibold sm:hidden">${it.num}</text>
-        <text x="${x.toFixed(1)}" y="${(y + dy).toFixed(1)}" text-anchor="${anchor}" class="fill-dg-muted text-[12.5px] font-medium hidden sm:block">${esc(it.label)}</text>`;
+      // Sin datos: la etiqueta lo dice y queda atenuada, para no confundirlo con 0 %.
+      const nd = it.pct === null;
+      const tone = nd ? 'fill-dg-muted/60' : 'fill-dg-muted';
+      return `<text x="${x.toFixed(1)}" y="${(y + dy).toFixed(1)}" text-anchor="${anchor}" class="${tone} text-[17px] font-semibold sm:hidden">${it.num}${nd ? '*' : ''}</text>
+        <text x="${x.toFixed(1)}" y="${(y + dy).toFixed(1)}" text-anchor="${anchor}" class="${tone} text-[12.5px] font-medium hidden sm:block">${esc(it.label)}${nd ? ' (s/d)' : ''}</text>`;
     })
     .join('');
   return `<svg viewBox="0 0 ${W} ${H}" class="w-full h-auto overflow-visible" role="img" aria-label="Gráfico de madurez por bloque">
@@ -835,7 +899,12 @@ function renderResults(p: SubmissionPayload): void {
   $('dg-r-level').textContent = p.summary.level ?? 'Sin datos suficientes';
   $('dg-r-overall').textContent = p.summary.overall === null ? '' : `· ${p.summary.overall} %`;
   const lvl = LEVELS.find((l) => l.label === p.summary.level);
-  $('dg-r-level-text').textContent = lvl?.text ?? 'Responde más preguntas de los bloques 2 a 10 para obtener un puntaje.';
+  $('dg-r-level-text').textContent = lvl?.text ?? 'No hubo suficientes respuestas que puntúen para calcular un nivel.';
+  const withData = scoredBlocks.filter((b) => b.score !== null).length;
+  $('dg-r-coverage').textContent = withData
+    ? `Basado en ${withData} de ${scoredBlocks.length} bloques con respuestas${withData < scoredBlocks.length ? ': resultado parcial.' : '.'}`
+    : '';
+  const scoredAnswers = scoredBlocks.flatMap((b) => b.questions).filter((q) => typeof q.score === 'number').length;
   $('dg-r-scale').innerHTML = LEVELS.map((l) => {
     const on = l.label === p.summary.level;
     return `<div><div class="h-1.5 rounded-full ${on ? 'bg-dg-brand' : 'bg-dg-line'}"></div><p class="mt-1.5 text-[11px] leading-tight ${on ? 'font-semibold text-dg-ink' : 'text-dg-muted'}">${esc(l.label)}</p></div>`;
@@ -859,8 +928,9 @@ function renderResults(p: SubmissionPayload): void {
     .forEach((el) => (el.style.width = `${Math.max(0, Math.min(100, Number(el.dataset.pct)))}%`));
 
   // Hallazgos rápidos
+  // Solo cuentan como brecha los bloques bajo "Avanzado".
   const gaps = scoredBlocks
-    .filter((b) => b.score !== null)
+    .filter((b) => b.score !== null && b.score < 75)
     .sort((a, b) => (a.score as number) - (b.score as number))
     .slice(0, 2);
   const cell = (title: string, body: string) =>
@@ -868,13 +938,21 @@ function renderResults(p: SubmissionPayload): void {
   const insights = [
     cell(
       'Mayores brechas',
-      gaps.length ? gaps.map((g) => `${esc(g.short)} <span class="text-dg-muted">(${g.score} %)</span>`).join('<br>') : 'Sin datos suficientes.',
+      gaps.length
+        ? gaps.map((g) => `${esc(g.short)} <span class="text-dg-muted">(${g.score} %)</span>`).join('<br>')
+        : withData
+          ? 'Ningún bloque bajo 75 %.'
+          : 'Sin datos suficientes.',
     ),
     cell(
       'Respuestas "No sé"',
       p.summary.unknown
         ? `${p.summary.unknown} ${p.summary.unknown === 1 ? 'pregunta' : 'preguntas'}. Conocer el estado real es el primer paso: lo que no se sabe, no se gestiona.`
-        : 'Ninguna. Buen conocimiento del estado actual.',
+        : !scoredAnswers
+          ? 'Sin datos suficientes.'
+          : withData < scoredBlocks.length
+            ? 'Ninguna en los bloques que respondiste.'
+            : 'Ninguna. Buen conocimiento del estado actual.',
     ),
     cell(
       'Tu prioridad #1',
@@ -928,6 +1006,11 @@ $('dg-theme').addEventListener('click', () => {
 hydrate();
 updateProgress();
 renderIntro();
+if (!cryptoAvailable()) {
+  // Sin Web Crypto no se puede enviar: avisar antes de que respondan, no al final.
+  $('dg-nocrypto').hidden = false;
+  $<HTMLButtonElement>('dg-start').disabled = true;
+}
 {
   const id = location.hash.slice(1);
   if (STEPS.includes(id)) {

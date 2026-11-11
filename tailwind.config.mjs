@@ -21,6 +21,7 @@ export default {
           surface: 'oklch(var(--dg-surface) / <alpha-value>)',
           sunken: 'oklch(var(--dg-sunken) / <alpha-value>)',
           line: 'oklch(var(--dg-line) / <alpha-value>)',
+          control: 'oklch(var(--dg-control) / <alpha-value>)',
           ink: 'oklch(var(--dg-ink) / <alpha-value>)',
           muted: 'oklch(var(--dg-muted) / <alpha-value>)',
           brand: 'oklch(var(--dg-brand) / <alpha-value>)',

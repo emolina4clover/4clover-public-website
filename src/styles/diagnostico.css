@@ -7,6 +7,7 @@
   --dg-surface: 0.993 0.003 165;
   --dg-sunken: 0.952 0.008 165;
   --dg-line: 0.895 0.012 165;
+  --dg-control: 0.66 0.02 170; /* bordes de controles: ≥3:1 sobre la superficie */
   --dg-ink: 0.24 0.022 170;
   --dg-muted: 0.47 0.02 170;
   --dg-brand: 0.405 0.066 170;
@@ -25,6 +26,7 @@
   --dg-surface: 0.225 0.014 170;
   --dg-sunken: 0.205 0.013 170;
   --dg-line: 0.31 0.016 170;
+  --dg-control: 0.53 0.02 170;
   --dg-ink: 0.95 0.008 165;
   --dg-muted: 0.73 0.016 165;
   --dg-brand: 0.76 0.11 165;
@@ -40,6 +42,12 @@
 
 .dg-app [hidden] {
   display: none !important;
+}
+
+/* Que el foco por teclado no quede bajo el encabezado ni la barra inferior fijos */
+html {
+  scroll-padding-top: 5.5rem;
+  scroll-padding-bottom: 6rem;
 }
 
 input:checked + .dg-chip .dg-check {
@@ -154,6 +162,10 @@ input:checked + .dg-chip .dg-check {
   #dg-print .ans {
     width: 34%;
     font-weight: 600;
+  }
+  #dg-print .ans,
+  #dg-print .det {
+    white-space: pre-wrap;
   }
   #dg-print .det {
     display: block;

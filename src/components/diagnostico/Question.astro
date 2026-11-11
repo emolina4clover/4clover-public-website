@@ -63,7 +63,7 @@ const field = 'dg-field';
                 class="peer sr-only"
               />
               <span
-                class={`${chip} ${q.type === 'scale' ? 'sm:min-w-[4.5rem] px-1.5 sm:px-3.5' : ''} ${hasHints ? 'h-full flex-col items-start text-left py-2.5' : ''}`}
+                class={`${chip} ${q.type === 'scale' ? 'sm:min-w-[4.5rem] px-1 sm:px-3.5 text-[13px] sm:text-sm whitespace-nowrap' : ''} ${hasHints ? 'h-full flex-col items-start text-left py-2.5' : ''}`}
               >
                 {q.type === 'multi' && <Icon name="check" class="dg-check hidden w-3.5 h-3.5 -ml-0.5" />}
                 {hasHints ? (
@@ -89,6 +89,7 @@ const field = 'dg-field';
             class="dg-detail-toggle inline-flex items-center gap-1 rounded-md -ml-1 px-1 py-0.5 text-sm font-medium text-dg-brand hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand"
             aria-expanded="false"
             aria-controls={`det-${key}`}
+            aria-label={`Agregar detalle a la pregunta ${q.id}`}
           >
             <Icon name="plus" class="w-4 h-4" />
             Agregar detalle

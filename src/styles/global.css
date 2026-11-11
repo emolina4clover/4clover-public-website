@@ -102,7 +102,7 @@
   /* Auto-diagnóstico: opción de respuesta (input.peer oculto + .dg-chip visible). Aquí y no en el
      markup porque se repite ~270 veces. */
   .dg-chip {
-    @apply flex items-center justify-center gap-1.5 min-h-11 px-3.5 rounded-xl border border-dg-line bg-dg-surface text-sm font-medium text-dg-ink text-center leading-tight select-none transition-colors duration-150;
+    @apply flex items-center justify-center gap-1.5 min-h-11 px-3.5 rounded-xl border border-dg-control bg-dg-surface text-sm font-medium text-dg-ink text-center leading-tight select-none transition-colors duration-150;
   }
   .dg-chip:hover {
     @apply border-dg-brand/50 bg-dg-brand-soft/40;
@@ -114,10 +114,10 @@
     @apply ring-2 ring-dg-brand ring-offset-2 ring-offset-dg-surface;
   }
   .dg-field {
-    @apply w-full rounded-xl border border-dg-line bg-dg-canvas px-3.5 py-2.5 text-sm text-dg-ink transition-colors;
+    @apply w-full rounded-xl border border-dg-control bg-dg-canvas px-3.5 py-2.5 text-sm text-dg-ink transition-colors;
   }
   .dg-field::placeholder {
-    @apply text-dg-muted/70;
+    @apply text-dg-muted;
   }
   .dg-field:focus {
     @apply outline-none border-dg-brand ring-2 ring-dg-brand/25;
