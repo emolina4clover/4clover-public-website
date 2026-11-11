@@ -319,7 +319,8 @@ function renderReport(p) {
         h('div', { class: 'lab' }, h('span', {}, h('span', { class: 'muted', text: b.number + '  ' }), b.short), h('span', {}, b.score == null ? h('span', { class: 'muted', text: 'Sin datos' }) : h('strong', { text: b.score + ' %' }), b.level ? h('span', { class: 'muted', text: ' · ' + b.level }) : null)),
         h('div', { class: 'track' }, fill));
     })),
-    p.blocks.map((b) => [
+    // replaceChildren no aplana arreglos: hay que expandirlos (si no, imprime "[object HTML...]").
+    ...p.blocks.flatMap((b) => [
       h('h3', { class: 'block' }, 'Bloque ' + b.number + '. ' + b.title, b.score != null ? h('span', { class: 'muted small', text: b.score + ' % · ' + b.level }) : (b.scored ? null : h('span', { class: 'muted small', text: 'contexto, no puntúa' }))),
       qTable(b.questions)]),
     h('h3', { class: 'block' }, 'Bloque 11 A. Priorización de dominios', p.priorities && !p.priorities.reordered ? h('span', { class: 'pill r', text: 'orden sin modificar' }) : null),
