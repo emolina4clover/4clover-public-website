@@ -1,0 +1,166 @@
+/*
+ * Auto-diagnóstico: tokens de color (OKLCH, "L C H") y detalles que Tailwind no cubre.
+ * Neutros teñidos hacia el verde de marca (#175747 ≈ oklch(0.405 0.066 170)).
+ */
+:root {
+  --dg-canvas: 0.972 0.006 165;
+  --dg-surface: 0.993 0.003 165;
+  --dg-sunken: 0.952 0.008 165;
+  --dg-line: 0.895 0.012 165;
+  --dg-ink: 0.24 0.022 170;
+  --dg-muted: 0.47 0.02 170;
+  --dg-brand: 0.405 0.066 170;
+  --dg-brand-strong: 0.34 0.058 170;
+  --dg-brand-soft: 0.935 0.03 165;
+  --dg-on-brand: 0.985 0.006 165;
+  --dg-accent: 0.51 0.105 165; /* marcas de gráfico, validado ≥3:1 */
+  --dg-danger: 0.53 0.17 28;
+  --dg-danger-soft: 0.955 0.025 28;
+  --dg-hero: 0.405 0.066 170;
+  --dg-on-hero: 0.975 0.01 165;
+}
+
+.dark {
+  --dg-canvas: 0.185 0.012 170;
+  --dg-surface: 0.225 0.014 170;
+  --dg-sunken: 0.205 0.013 170;
+  --dg-line: 0.31 0.016 170;
+  --dg-ink: 0.95 0.008 165;
+  --dg-muted: 0.73 0.016 165;
+  --dg-brand: 0.76 0.11 165;
+  --dg-brand-strong: 0.82 0.1 165;
+  --dg-brand-soft: 0.3 0.045 168;
+  --dg-on-brand: 0.2 0.03 170;
+  --dg-accent: 0.66 0.12 163;
+  --dg-danger: 0.72 0.15 28;
+  --dg-danger-soft: 0.3 0.06 28;
+  --dg-hero: 0.3 0.055 170;
+  --dg-on-hero: 0.96 0.01 165;
+}
+
+.dg-app [hidden] {
+  display: none !important;
+}
+
+input:checked + .dg-chip .dg-check {
+  display: inline-block;
+}
+
+[data-nav-mark][data-done='true'] > [data-nav-num] {
+  display: none;
+}
+[data-nav-mark][data-done='true'] > svg {
+  display: block;
+}
+
+/* Curvas de nivel: guiño a la faena, sin imágenes externas */
+.dg-contours {
+  background-image:
+    repeating-radial-gradient(ellipse at 88% 12%, transparent 0 26px, oklch(1 0 0 / 0.07) 26px 27px),
+    repeating-radial-gradient(ellipse at 8% 110%, transparent 0 34px, oklch(1 0 0 / 0.05) 34px 35px);
+}
+
+/* Entrada de cada paso: corta y sin rebote */
+.dg-step-enter {
+  animation: dg-in 220ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+@keyframes dg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.dg-bar-fill {
+  transform-origin: left center;
+  animation: dg-grow 600ms cubic-bezier(0.25, 1, 0.5, 1) both;
+}
+@keyframes dg-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.dg-spin {
+  animation: dg-rot 0.9s linear infinite;
+}
+@keyframes dg-rot {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Fila arrastrándose en la priorización */
+.dg-dragging {
+  box-shadow: 0 12px 28px -12px oklch(0.2 0.03 170 / 0.45);
+  position: relative;
+  z-index: 10;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dg-step-enter,
+  .dg-bar-fill,
+  .dg-spin {
+    animation: none;
+  }
+}
+
+/* Impresión: solo la copia de respuestas */
+#dg-print {
+  display: none;
+}
+@media print {
+  .dg-app {
+    display: none !important;
+  }
+  #dg-print {
+    display: block;
+    color: #1a1a1a;
+    font: 10.5pt/1.45 Inter, system-ui, sans-serif;
+  }
+  #dg-print h1 {
+    font-size: 18pt;
+    margin: 0 0 4pt;
+  }
+  #dg-print h2 {
+    font-size: 12.5pt;
+    margin: 16pt 0 6pt;
+    padding-bottom: 3pt;
+    border-bottom: 1px solid #ccc;
+    break-after: avoid;
+  }
+  #dg-print .meta {
+    color: #555;
+    margin-bottom: 10pt;
+  }
+  #dg-print table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  #dg-print td,
+  #dg-print th {
+    text-align: left;
+    vertical-align: top;
+    padding: 4pt 6pt 4pt 0;
+    border-bottom: 1px solid #eee;
+  }
+  #dg-print tr {
+    break-inside: avoid;
+  }
+  #dg-print .num {
+    width: 3.2em;
+    color: #555;
+  }
+  #dg-print .ans {
+    width: 34%;
+    font-weight: 600;
+  }
+  #dg-print .det {
+    display: block;
+    font-weight: 400;
+    color: #555;
+  }
+  @page {
+    margin: 16mm 14mm;
+  }
+}

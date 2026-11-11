@@ -99,6 +99,33 @@
     @apply inline-flex justify-center items-center px-8 py-4 border border-gray-300 dark:border-gray-700 text-base font-semibold rounded-lg text-text-light dark:text-white bg-white dark:bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800 transition-all focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2;
   }
 
+  /* Auto-diagnóstico: opción de respuesta (input.peer oculto + .dg-chip visible). Aquí y no en el
+     markup porque se repite ~270 veces. */
+  .dg-chip {
+    @apply flex items-center justify-center gap-1.5 min-h-11 px-3.5 rounded-xl border border-dg-line bg-dg-surface text-sm font-medium text-dg-ink text-center leading-tight select-none transition-colors duration-150;
+  }
+  .dg-chip:hover {
+    @apply border-dg-brand/50 bg-dg-brand-soft/40;
+  }
+  .peer:checked ~ .dg-chip {
+    @apply bg-dg-brand border-dg-brand text-dg-on-brand;
+  }
+  .peer:focus-visible ~ .dg-chip {
+    @apply ring-2 ring-dg-brand ring-offset-2 ring-offset-dg-surface;
+  }
+  .dg-field {
+    @apply w-full rounded-xl border border-dg-line bg-dg-canvas px-3.5 py-2.5 text-sm text-dg-ink transition-colors;
+  }
+  .dg-field::placeholder {
+    @apply text-dg-muted/70;
+  }
+  .dg-field:focus {
+    @apply outline-none border-dg-brand ring-2 ring-dg-brand/25;
+  }
+  .dg-field[aria-invalid='true'] {
+    @apply border-dg-danger;
+  }
+
   /* Cards con hover */
   .card-hover {
     @apply bg-background-light dark:bg-background-dark p-8 rounded-2xl transition-all duration-300 border border-transparent hover:border-primary/20 hover:shadow-xl hover:-translate-y-1;

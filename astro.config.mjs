@@ -6,7 +6,8 @@ export default defineConfig({
   site: 'https://4clover.cl',
   integrations: [
     tailwind(),
-    sitemap(),
+    // Las páginas privadas (/diagnostico/...) nunca van al sitemap.
+    sitemap({ filter: (page) => !page.includes('/diagnostico/') }),
   ],
   output: 'static',
 });

@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="es-CL">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Sin red: este archivo nunca puede enviar la llave ni las respuestas a ninguna parte. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+<meta name="robots" content="noindex, nofollow">
+<title>Visor de diagnósticos · 4Clover</title>
+<!--
+  Visor LOCAL de respuestas del auto-diagnóstico.
+  Ábrelo con doble clic (file://) en Chrome, Edge, Firefox o Safari. No se publica en el sitio.
+
+  1. Carga tu llave privada (diagnostico-llave-privada.pem).
+  2. Pega el bloque "-----BEGIN 4CLOVER DIAGNOSTICO-----" del correo de Formspree
+     (puedes pegar el correo completo).
+  3. Descifrar → reporte para imprimir/PDF, JSON o CSV (Excel).
+
+  Todo ocurre en este navegador; la página no tiene acceso a la red (ver CSP arriba).
+  El formato de cifrado está en src/lib/diagnostico/crypto.ts.
+-->
+<style>
+  :root {
+    --canvas: oklch(0.972 0.006 165); --surface: oklch(0.993 0.003 165); --sunken: oklch(0.952 0.008 165);
+    --line: oklch(0.895 0.012 165); --ink: oklch(0.24 0.022 170); --muted: oklch(0.47 0.02 170);
+    --brand: oklch(0.405 0.066 170); --brand-strong: oklch(0.34 0.058 170); --brand-soft: oklch(0.935 0.03 165);
+    --on-brand: oklch(0.985 0.006 165); --accent: oklch(0.51 0.105 165);
+    --danger: oklch(0.53 0.17 28); --danger-soft: oklch(0.955 0.025 28);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --canvas: oklch(0.185 0.012 170); --surface: oklch(0.225 0.014 170); --sunken: oklch(0.205 0.013 170);
+      --line: oklch(0.31 0.016 170); --ink: oklch(0.95 0.008 165); --muted: oklch(0.73 0.016 165);
+      --brand: oklch(0.76 0.11 165); --brand-strong: oklch(0.82 0.1 165); --brand-soft: oklch(0.3 0.045 168);
+      --on-brand: oklch(0.2 0.03 170); --accent: oklch(0.66 0.12 163);
+      --danger: oklch(0.72 0.15 28); --danger-soft: oklch(0.3 0.06 28);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--canvas); color: var(--ink); font: 15px/1.5 "Segoe UI", system-ui, -apple-system, Inter, sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 64rem; margin: 0 auto; padding: 2rem 1rem 4rem; }
+  header.top { display: flex; align-items: center; gap: .75rem; margin-bottom: 1.75rem; }
+  .logo { display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: .6rem; background: var(--brand); color: var(--on-brand); font-weight: 700; }
+  h1 { font-size: 1.5rem; margin: 0; letter-spacing: -0.01em; }
+  .muted { color: var(--muted); }
+  .small { font-size: .82rem; }
+  .grid2 { display: grid; gap: 1rem; grid-template-columns: 1fr; }
+  @media (min-width: 52rem) { .grid2 { grid-template-columns: 1fr 1.4fr; } }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 1rem; padding: 1.25rem; }
+  .step { display: flex; align-items: center; gap: .6rem; font-weight: 600; margin: 0 0 .75rem; }
+  .num { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: .78rem; font-weight: 700; }
+  .num.ok { background: var(--brand); color: var(--on-brand); }
+  .drop { display: grid; place-items: center; text-align: center; gap: .25rem; min-height: 7.5rem; border: 1.5px dashed var(--line); border-radius: .8rem; padding: 1rem; cursor: pointer; transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--brand); background: var(--brand-soft); }
+  .drop:focus-visible, button:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+  textarea { width: 100%; min-height: 9.5rem; resize: vertical; border: 1px solid var(--line); border-radius: .8rem; background: var(--canvas); color: var(--ink); padding: .75rem .85rem; font: .8rem/1.45 ui-monospace, Consolas, monospace; }
+  details summary { cursor: pointer; color: var(--brand); font-size: .85rem; font-weight: 600; margin-top: .75rem; }
+  button { font: inherit; }
+  .btn { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; padding: 0 1.1rem; border-radius: .75rem; border: 1px solid transparent; font-weight: 600; font-size: .9rem; cursor: pointer; transition: background .15s, border-color .15s; }
+  .btn.primary { background: var(--brand); color: var(--on-brand); }
+  .btn.primary:hover { background: var(--brand-strong); }
+  .btn.primary:disabled { opacity: .55; cursor: not-allowed; }
+  .btn.ghost { background: var(--surface); border-color: var(--line); color: var(--ink); }
+  .btn.ghost:hover { border-color: var(--brand); }
+  .row { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; }
+  .status { font-size: .85rem; }
+  .err { margin-top: 1rem; background: var(--danger-soft); border: 1px solid color-mix(in oklch, var(--danger) 40%, transparent); border-radius: .8rem; padding: .75rem 1rem; font-size: .9rem; }
+  .keyok { display: flex; align-items: center; gap: .5rem; padding: .75rem .9rem; border-radius: .8rem; background: var(--brand-soft); font-size: .88rem; }
+  code { font: .82rem ui-monospace, Consolas, monospace; }
+
+  /* Reporte */
+  #report { margin-top: 2.5rem; }
+  .rhead { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 1rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--line); }
+  .rhead h2 { margin: .15rem 0 .2rem; font-size: 1.6rem; letter-spacing: -0.015em; }
+  .eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--brand); }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 1rem; overflow: hidden; margin: 1.5rem 0; }
+  .facts > div { background: var(--surface); padding: .9rem 1rem; }
+  .facts dt { font-size: .75rem; color: var(--muted); }
+  .facts dd { margin: .15rem 0 0; font-weight: 600; }
+  .bars { list-style: none; margin: 0; padding: 0; display: grid; gap: .85rem; }
+  .bars .lab { display: flex; justify-content: space-between; gap: 1rem; font-size: .9rem; }
+  .track { margin-top: .35rem; height: .5rem; border-radius: 99px; background: var(--sunken); overflow: hidden; }
+  .fill { height: 100%; border-radius: 99px; background: var(--accent); }
+  h3.block { font-size: 1.05rem; margin: 2.25rem 0 .6rem; display: flex; flex-wrap: wrap; gap: .25rem .75rem; align-items: baseline; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: .9rem; overflow: hidden; font-size: .9rem; }
+  th, td { text-align: left; vertical-align: top; padding: .65rem .8rem; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: .75rem; color: var(--muted); font-weight: 600; background: var(--sunken); }
+  td.id { width: 3.5rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.ans { width: 32%; font-weight: 600; }
+  td.sc { width: 4.5rem; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .det { display: block; font-weight: 400; color: var(--muted); margin-top: .2rem; white-space: pre-wrap; }
+  .none { color: var(--muted); font-weight: 400; font-style: italic; }
+  .pill { display: inline-block; padding: .05rem .5rem; border-radius: 99px; font-size: .75rem; font-weight: 600; background: var(--sunken); color: var(--muted); }
+  .pill.g { background: var(--brand-soft); color: var(--brand); }
+  .pill.r { background: var(--danger-soft); color: var(--danger); }
+  .noprint { }
+  @media print {
+    body { background: #fff; color: #1a1a1a; font-size: 10pt; }
+    .noprint, #setup { display: none !important; }
+    #report { margin: 0; }
+    .wrap { padding: 0; max-width: none; }
+    table, .facts { border-color: #ddd; }
+    tr { break-inside: avoid; }
+    h3.block { break-after: avoid; }
+    @page { margin: 14mm 12mm; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top noprint">
+    <span class="logo" aria-hidden="true">4</span>
+    <div>
+      <h1>Visor de diagnósticos</h1>
+      <p class="muted small" style="margin:0">Descifra en este equipo las respuestas que llegan por Formspree. Sin conexión a internet.</p>
+    </div>
+  </header>
+
+  <section id="setup" class="grid2">
+    <div class="panel">
+      <p class="step"><span class="num" id="n1">1</span> Llave privada</p>
+      <div id="keyZone">
+        <label class="drop" id="drop" tabindex="0">
+          <input type="file" id="keyFile" accept=".pem,.key,.txt" hidden>
+          <strong>Elegir o arrastrar la llave</strong>
+          <span class="muted small">diagnostico-llave-privada.pem</span>
+        </label>
+        <details>
+          <summary>o pegar el contenido de la llave</summary>
+          <textarea id="keyText" placeholder="-----BEGIN PRIVATE KEY-----" spellcheck="false" autocomplete="off" style="margin-top:.6rem;min-height:6rem"></textarea>
+          <div class="row" style="margin-top:.5rem"><button type="button" class="btn ghost" id="keyUse">Usar esta llave</button></div>
+        </details>
+      </div>
+      <div id="keyOk" class="keyok" hidden></div>
+    </div>
+
+    <div class="panel">
+      <p class="step"><span class="num" id="n2">2</span> Respuesta cifrada</p>
+      <textarea id="cipher" placeholder="Pega aquí el bloque -----BEGIN 4CLOVER DIAGNOSTICO----- (o el correo completo)" spellcheck="false" autocomplete="off"></textarea>
+      <div class="row" style="margin-top:.85rem">
+        <button type="button" class="btn primary" id="go" disabled>Descifrar</button>
+        <button type="button" class="btn ghost" id="loadTxt">Abrir archivo .txt</button>
+        <input type="file" id="txtFile" accept=".txt,.eml" hidden>
+        <span class="status muted" id="status" aria-live="polite"></span>
+      </div>
+      <div id="err" class="err" role="alert" hidden></div>
+    </div>
+  </section>
+
+  <section id="report" hidden></section>
+</div>
+
+<script>
+'use strict';
+const BEGIN = '-----BEGIN 4CLOVER DIAGNOSTICO-----';
+const END = '-----END 4CLOVER DIAGNOSTICO-----';
+const $ = (id) => document.getElementById(id);
+const subtle = window.crypto && window.crypto.subtle;
+
+let privKey = null;
+let privKid = null;
+let lastPayload = null;
+
+/* ---------- utilidades ---------- */
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v; else if (k === 'text') el.textContent = v; else el.setAttribute(k, v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) el.append(k instanceof Node ? k : String(k));
+  return el;
+}
+const b64ToBytes = (b64) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+const hex = (buf) => Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, '0')).join('');
+const enc = new TextEncoder();
+function showErr(msg) { const e = $('err'); e.textContent = msg; e.hidden = !msg; }
+function setStatus(msg) { $('status').textContent = msg || ''; }
+function slug(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'diagnostico'; }
+function download(name, text, type) {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = h('a', { href: url, download: name });
+  document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function refreshGo() { $('go').disabled = !(privKey && $('cipher').value.includes(BEGIN)); }
+
+/* ---------- llave privada ---------- */
+async function loadKey(pemText) {
+  showErr('');
+  if (!subtle) return showErr('Este navegador no permite descifrar en esta página. Ábrela con doble clic desde tu equipo (file://) en Chrome, Edge, Firefox o Safari actualizados.');
+  const m = String(pemText).match(/-----BEGIN PRIVATE KEY-----([\s\S]+?)-----END PRIVATE KEY-----/);
+  if (!m) return showErr('No reconozco la llave. Debe ser el archivo .pem que empieza con "-----BEGIN PRIVATE KEY-----".');
+  try {
+    const der = b64ToBytes(m[1].replace(/[^A-Za-z0-9+/=]/g, ''));
+    const k = await subtle.importKey('pkcs8', der, { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['decrypt']);
+    const jwk = await subtle.exportKey('jwk', k);
+    const pub = await subtle.importKey('jwk', { kty: 'RSA', n: jwk.n, e: jwk.e, ext: true }, { name: 'RSA-OAEP', hash: 'SHA-256' }, true, ['encrypt']);
+    const spki = await subtle.exportKey('spki', pub);
+    privKid = hex(await subtle.digest('SHA-256', spki)).slice(0, 16);
+    // Se reimporta como no exportable: desde aquí la llave no puede salir de la memoria del navegador.
+    privKey = await subtle.importKey('pkcs8', der, { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['decrypt']);
+  } catch (e) {
+    privKey = null;
+    return showErr('No pude cargar la llave: el archivo parece dañado o no es una llave RSA.');
+  }
+  $('keyText').value = '';
+  $('keyZone').hidden = true;
+  const ok = $('keyOk');
+  ok.replaceChildren(h('span', { text: '✓' }), h('span', {}, 'Llave cargada · huella ', h('code', { text: privKid })), h('button', { type: 'button', class: 'btn ghost', style: 'margin-left:auto;min-height:2rem;padding:0 .7rem;font-size:.8rem', id: 'keyChange', text: 'Cambiar' }));
+  ok.hidden = false;
+  $('n1').classList.add('ok');
+  $('keyChange').onclick = () => { privKey = null; privKid = null; ok.hidden = true; $('keyZone').hidden = false; $('n1').classList.remove('ok'); refreshGo(); };
+  refreshGo();
+}
+const readFile = (file) => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsText(file); });
+$('keyFile').addEventListener('change', async (e) => { const f = e.target.files[0]; if (f) await loadKey(await readFile(f)); e.target.value = ''; });
+$('keyUse').addEventListener('click', () => loadKey($('keyText').value));
+const drop = $('drop');
+drop.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $('keyFile').click(); } });
+['dragenter', 'dragover'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', async (e) => { const f = e.dataTransfer.files[0]; if (f) await loadKey(await readFile(f)); });
+
+/* ---------- respuesta ---------- */
+$('cipher').addEventListener('input', refreshGo);
+$('loadTxt').addEventListener('click', () => $('txtFile').click());
+$('txtFile').addEventListener('change', async (e) => { const f = e.target.files[0]; if (f) { $('cipher').value = await readFile(f); refreshGo(); } e.target.value = ''; });
+
+async function decrypt(text) {
+  const s = text.indexOf(BEGIN);
+  const t = text.indexOf(END, s + BEGIN.length);
+  if (s < 0 || t < 0) throw new Error('No encontré el bloque completo (falta la línea BEGIN o END).');
+  let env;
+  try { env = JSON.parse(new TextDecoder().decode(b64ToBytes(text.slice(s + BEGIN.length, t).replace(/[^A-Za-z0-9+/=]/g, '')))); }
+  catch { throw new Error('El bloque está incompleto o se alteró al copiarlo. Vuelve a copiarlo completo desde el correo.'); }
+  if (env.v !== 1 || env.alg !== 'RSA-OAEP-256+A256GCM') throw new Error('Formato no soportado (' + env.v + ', ' + env.alg + '). Actualiza este visor.');
+  if (env.kid !== privKid) throw new Error('Esta respuesta se cifró con otra llave (huella ' + env.kid + '). La llave cargada es ' + privKid + '.');
+  let raw;
+  try { raw = await subtle.decrypt({ name: 'RSA-OAEP' }, privKey, b64ToBytes(env.ek)); }
+  catch { throw new Error('La llave no pudo abrir esta respuesta.'); }
+  const aes = await subtle.importKey('raw', raw, { name: 'AES-GCM' }, false, ['decrypt']);
+  let plain;
+  try { plain = await subtle.decrypt({ name: 'AES-GCM', iv: b64ToBytes(env.iv), additionalData: enc.encode('4clover-diagnostico:v1:' + env.kid + ':' + env.z) }, aes, b64ToBytes(env.ct)); }
+  catch { throw new Error('La respuesta fue modificada o está dañada: no pasó la verificación de integridad.'); }
+  if (env.z === 'gzip') {
+    if (typeof DecompressionStream === 'undefined') throw new Error('Este navegador no puede descomprimir. Usa Chrome, Edge o Firefox actualizados.');
+    plain = await new Response(new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  }
+  return JSON.parse(new TextDecoder().decode(plain));
+}
+
+$('go').addEventListener('click', async () => {
+  showErr(''); setStatus('Descifrando…'); $('go').disabled = true;
+  try {
+    const p = await decrypt($('cipher').value);
+    if (!p || p.v !== 1 || !Array.isArray(p.blocks)) throw new Error('El contenido descifrado no tiene el formato esperado.');
+    lastPayload = p;
+    $('n2').classList.add('ok');
+    renderReport(p);
+    setStatus('');
+    $('report').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {
+    setStatus(''); showErr(e.message || 'No se pudo descifrar.');
+  } finally { refreshGo(); }
+});
+
+/* ---------- reporte ---------- */
+function scorePill(score) {
+  if (score === null || score === undefined) return h('span', { class: 'pill', text: 'no puntúa' });
+  const pct = Math.round(score * 100);
+  return h('span', { class: 'pill ' + (score >= 0.75 ? 'g' : score <= 0.25 ? 'r' : ''), text: pct + ' %' });
+}
+function answerCell(a) {
+  return h('td', { class: 'ans' }, a.answer ? a.answer : h('span', { class: 'none', text: 'Sin respuesta' }), a.detail ? h('span', { class: 'det', text: a.detail }) : null);
+}
+function qTable(list) {
+  return h('table', {},
+    h('thead', {}, h('tr', {}, h('th', { text: 'N°' }), h('th', { text: 'Pregunta' }), h('th', { text: 'Respuesta / detalle' }), h('th', { text: 'Puntaje', style: 'text-align:right' }))),
+    h('tbody', {}, list.map((a) => h('tr', {}, h('td', { class: 'id', text: a.id }), h('td', { text: a.text }), answerCell(a), h('td', { class: 'sc' }, a.type === 'text' || a.type === 'multi' ? '' : scorePill(a.score))))));
+}
+
+function renderReport(p) {
+  const r = $('report');
+  const date = new Date(p.submittedAt);
+  const when = isNaN(date) ? p.submittedAt : date.toLocaleString('es-CL', { dateStyle: 'long', timeStyle: 'short' });
+  const id = p.ident || {};
+  const sm = p.summary || {};
+  const scored = p.blocks.filter((b) => b.scored);
+
+  const actions = h('div', { class: 'row noprint' },
+    h('button', { type: 'button', class: 'btn primary', id: 'pPrint', text: 'Imprimir / PDF' }),
+    h('button', { type: 'button', class: 'btn ghost', id: 'pCsv', text: 'CSV (Excel)' }),
+    h('button', { type: 'button', class: 'btn ghost', id: 'pJson', text: 'JSON' }),
+    h('button', { type: 'button', class: 'btn ghost', id: 'pNext', text: 'Abrir otra respuesta' }));
+
+  r.replaceChildren(
+    h('div', { class: 'rhead' },
+      h('div', {},
+        h('p', { class: 'eyebrow', style: 'margin:0', text: (p.diagnostico && p.diagnostico.title) || 'Diagnóstico' }),
+        h('h2', { text: id.empresa || (p.diagnostico && p.diagnostico.company) || 'Sin empresa' }),
+        h('p', { class: 'muted', style: 'margin:0' }, [id.nombre, id.cargo].filter(Boolean).join(', ') || 'Sin nombre', ' · ', id.correo || 'sin correo', id.telefono ? ' · ' + id.telefono : '')),
+      actions),
+    h('dl', { class: 'facts' },
+      h('div', {}, h('dt', { text: 'Madurez general (indicativa)' }), h('dd', { text: sm.overall == null ? 'Sin datos' : sm.overall + ' % · ' + sm.level })),
+      h('div', {}, h('dt', { text: 'Respondidas' }), h('dd', { text: (sm.answered ?? '?') + ' de ' + (sm.total ?? '?') })),
+      h('div', {}, h('dt', { text: '"No sé"' }), h('dd', { text: String(sm.unknown ?? 0) })),
+      h('div', {}, h('dt', { text: 'Enviado' }), h('dd', { text: when })),
+      h('div', {}, h('dt', { text: 'Consentimiento' }), h('dd', { text: p.consent ? 'Sí' : 'No' })),
+      h('div', {}, h('dt', { text: 'Cuestionario' }), h('dd', { text: (p.diagnostico && (p.diagnostico.id + ' v' + p.diagnostico.version)) || '?' }))),
+    h('h3', { class: 'block', text: 'Madurez por bloque' }),
+    h('ul', { class: 'bars' }, scored.map((b) => {
+      const fill = h('div', { class: 'fill' });
+      fill.style.width = Math.max(0, Math.min(100, b.score || 0)) + '%';
+      return h('li', {},
+        h('div', { class: 'lab' }, h('span', {}, h('span', { class: 'muted', text: b.number + '  ' }), b.short), h('span', {}, b.score == null ? h('span', { class: 'muted', text: 'Sin datos' }) : h('strong', { text: b.score + ' %' }), b.level ? h('span', { class: 'muted', text: ' · ' + b.level }) : null)),
+        h('div', { class: 'track' }, fill));
+    })),
+    p.blocks.map((b) => [
+      h('h3', { class: 'block' }, 'Bloque ' + b.number + '. ' + b.title, b.score != null ? h('span', { class: 'muted small', text: b.score + ' % · ' + b.level }) : (b.scored ? null : h('span', { class: 'muted small', text: 'contexto, no puntúa' }))),
+      qTable(b.questions)]),
+    h('h3', { class: 'block' }, 'Bloque 11 A. Priorización de dominios', p.priorities && !p.priorities.reordered ? h('span', { class: 'pill r', text: 'orden sin modificar' }) : null),
+    h('table', {},
+      h('thead', {}, h('tr', {}, h('th', { text: 'N°' }), h('th', { text: 'Dominio' }), h('th', { text: '¿Por qué? / contexto' }))),
+      h('tbody', {}, ((p.priorities && p.priorities.ranking) || []).map((x) => h('tr', {}, h('td', { class: 'id', text: String(x.rank) }), h('td', { style: 'font-weight:600', text: x.domain }), h('td', {}, x.why ? x.why : h('span', { class: 'none', text: 'Sin comentario' })))))),
+    h('h3', { class: 'block', text: 'Bloque 11 B. Preguntas de cierre' }),
+    qTable(p.closing || []));
+  r.hidden = false;
+
+  $('pPrint').onclick = () => window.print();
+  $('pJson').onclick = () => download('diagnostico-' + slug(id.empresa) + '-' + (p.submittedAt || '').slice(0, 10) + '.json', JSON.stringify(p, null, 2), 'application/json');
+  $('pCsv').onclick = () => download('diagnostico-' + slug(id.empresa) + '-' + (p.submittedAt || '').slice(0, 10) + '.csv', toCsv(p), 'text/csv;charset=utf-8');
+  $('pNext').onclick = () => { $('cipher').value = ''; r.hidden = true; r.replaceChildren(); $('n2').classList.remove('ok'); refreshGo(); window.scrollTo({ top: 0 }); $('cipher').focus(); };
+}
+
+/* CSV con ";" (Excel en español) y protección contra fórmulas inyectadas en celdas. */
+function cell(v) {
+  let s = v == null ? '' : String(v);
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return '"' + s.replace(/"/g, '""') + '"';
+}
+function toCsv(p) {
+  const rows = [['Bloque', 'N°', 'Pregunta', 'Respuesta', 'Detalle', 'Puntaje (0-100)']];
+  for (const b of p.blocks) for (const a of b.questions) rows.push(['B' + b.number + ' ' + b.short, a.id, a.text, a.answer, a.detail, a.score == null ? '' : Math.round(a.score * 100)]);
+  for (const x of (p.priorities && p.priorities.ranking) || []) rows.push(['B11A Prioridades', x.rank, x.domain, '', x.why, '']);
+  for (const a of p.closing || []) rows.push(['B11B Cierre', a.id, a.text, a.answer, a.detail, '']);
+  return '﻿' + rows.map((r) => r.map(cell).join(';')).join('\r\n');
+}
+</script>
+</body>
+</html>

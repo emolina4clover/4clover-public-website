@@ -1,0 +1,113 @@
+---
+import type { Question } from '../../lib/diagnostico/types';
+import { optionsOf } from '../../lib/diagnostico/scoring';
+import Icon from './Icon.astro';
+
+interface Props {
+  q: Question;
+}
+const { q } = Astro.props;
+const key = q.id.replace(/\./g, '-');
+const opts = optionsOf(q);
+const hasHints = q.type === 'choice' && opts.some((o) => o.hint);
+const detailPlaceholder =
+  typeof q.detail === 'string' && q.detail ? q.detail : 'Herramienta, responsable, documento o excepción';
+
+// Estilos base de .dg-chip / .dg-field en src/styles/diagnostico.css
+const chip = 'dg-chip';
+const field = 'dg-field';
+---
+
+<fieldset
+  class="group/q px-4 py-5 sm:px-6 sm:py-6 scroll-mt-28 transition-shadow duration-300 data-[flash=true]:ring-2 data-[flash=true]:ring-inset data-[flash=true]:ring-dg-brand/50"
+  data-qid={q.id}
+  id={`q-${key}`}
+>
+  <legend class="float-left w-full flex gap-3 sm:gap-4">
+    <span
+      class="mt-0.5 shrink-0 inline-flex items-center justify-center min-w-[2.75rem] h-6 px-1.5 rounded-md bg-dg-sunken text-xs font-semibold tabular-nums text-dg-muted transition-colors group-data-[answered=true]/q:bg-dg-brand-soft group-data-[answered=true]/q:text-dg-brand"
+    >
+      {q.id}
+    </span>
+    <span class="text-[0.975rem] sm:text-base font-medium leading-snug text-dg-ink text-pretty">{q.text}</span>
+  </legend>
+
+  <div class="clear-left pt-4 sm:pl-[3.75rem]">
+    {
+      q.type === 'text' ? (
+        <textarea
+          name={`t-${q.id}`}
+          rows="3"
+          maxlength="2000"
+          class={`${field} resize-y min-h-[5.5rem]`}
+          placeholder={q.placeholder ?? 'Escribe tu respuesta'}
+          aria-label={`Respuesta ${q.id}`}
+        />
+      ) : (
+        <div
+          class={
+            q.type === 'scale'
+              ? 'grid grid-cols-5 gap-1.5 sm:flex sm:flex-wrap sm:gap-2'
+              : hasHints
+                ? 'grid grid-cols-2 lg:grid-cols-4 gap-2'
+                : 'flex flex-wrap gap-2'
+          }
+        >
+          {opts.map((opt) => (
+            <label class="relative cursor-pointer" title={opt.hint}>
+              <input
+                type={q.type === 'multi' ? 'checkbox' : 'radio'}
+                name={`q-${q.id}`}
+                value={opt.value}
+                data-exclusive={opt.exclusive ? 'true' : undefined}
+                class="peer sr-only"
+              />
+              <span
+                class={`${chip} ${q.type === 'scale' ? 'sm:min-w-[4.5rem] px-1.5 sm:px-3.5' : ''} ${hasHints ? 'h-full flex-col items-start text-left py-2.5' : ''}`}
+              >
+                {q.type === 'multi' && <Icon name="check" class="dg-check hidden w-3.5 h-3.5 -ml-0.5" />}
+                {hasHints ? (
+                  <>
+                    <span>{opt.label}</span>
+                    <span class="text-xs font-normal opacity-75">{opt.hint}</span>
+                  </>
+                ) : (
+                  opt.label
+                )}
+              </span>
+            </label>
+          ))}
+        </div>
+      )
+    }
+
+    {
+      q.detail !== false && (
+        <div class="mt-3">
+          <button
+            type="button"
+            class="dg-detail-toggle inline-flex items-center gap-1 rounded-md -ml-1 px-1 py-0.5 text-sm font-medium text-dg-brand hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand"
+            aria-expanded="false"
+            aria-controls={`det-${key}`}
+          >
+            <Icon name="plus" class="w-4 h-4" />
+            Agregar detalle
+          </button>
+          <div id={`det-${key}`} hidden>
+            <label class="sr-only" for={`d-${key}`}>
+              Detalle {q.id}
+            </label>
+            <textarea
+              id={`d-${key}`}
+              name={`d-${q.id}`}
+              rows="2"
+              maxlength="1500"
+              class={`${field} resize-y`}
+              placeholder={`${detailPlaceholder} (opcional)`}
+            />
+          </div>
+        </div>
+      )
+    }
+  </div>
+</fieldset>

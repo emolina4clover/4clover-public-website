@@ -1,0 +1,490 @@
+---
+import DiagnosticoLayout from '../../layouts/DiagnosticoLayout.astro';
+import Icon from '../../components/diagnostico/Icon.astro';
+import Question from '../../components/diagnostico/Question.astro';
+import {
+  diagnosticos,
+  RECIPIENT_PUBLIC_KEY,
+  FORMSPREE_ID,
+  CALENDLY_URL,
+  CONTACT_EMAIL,
+} from '../../data/diagnosticos';
+import { SCALE } from '../../lib/diagnostico/scoring';
+import type { Diagnostico } from '../../lib/diagnostico/types';
+
+export function getStaticPaths() {
+  return diagnosticos.map((d) => ({ params: { slug: d.slug }, props: { d } }));
+}
+
+const { d } = Astro.props as { d: Diagnostico };
+
+const steps = [
+  { id: 'identificacion', label: 'Identificación', n: '' },
+  ...d.blocks.map((b) => ({ id: `bloque-${b.number}`, label: b.short, n: String(b.number) })),
+  { id: 'prioridades', label: 'Prioridades', n: '11A' },
+  { id: 'cierre', label: 'Cierre', n: '11B' },
+  { id: 'revision', label: 'Revisión y envío', n: '' },
+];
+const totalQuestions = d.blocks.reduce((n, b) => n + b.questions.length, 0) + d.closing.questions.length;
+
+const config = {
+  id: d.id,
+  version: d.version,
+  company: d.company,
+  title: d.title,
+  emailSubject: d.emailSubject,
+  thanks: d.thanks,
+  blocks: d.blocks,
+  priorities: d.priorities,
+  closing: d.closing,
+  publicKey: RECIPIENT_PUBLIC_KEY,
+  endpoint: `https://formspree.io/f/${FORMSPREE_ID}`,
+  calendly: CALENDLY_URL,
+  contactEmail: CONTACT_EMAIL,
+};
+// JSON embebido: se escapa "<" para que nunca pueda cerrar el <script>.
+const configJson = JSON.stringify(config).replace(/</g, '\\u003c');
+
+const field = 'dg-field';
+const label = 'block text-sm font-medium text-dg-ink mb-1.5';
+const btnPrimary =
+  'inline-flex items-center justify-center gap-2 min-h-11 px-5 rounded-xl bg-dg-brand text-dg-on-brand text-sm font-semibold transition-colors duration-150 hover:bg-dg-brand-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand focus-visible:ring-offset-2 focus-visible:ring-offset-dg-canvas disabled:opacity-60 disabled:cursor-not-allowed';
+const btnGhost =
+  'inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-xl text-sm font-semibold text-dg-ink border border-dg-line bg-dg-surface transition-colors duration-150 hover:border-dg-brand/50 hover:bg-dg-brand-soft/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand disabled:opacity-50 disabled:cursor-not-allowed';
+const panel = 'rounded-2xl border border-dg-line bg-dg-surface';
+const eyebrow = 'text-xs font-semibold uppercase tracking-[0.08em] text-dg-brand';
+const h2 = 'mt-1.5 text-2xl sm:text-[1.75rem] font-semibold tracking-tight text-dg-ink text-balance focus:outline-none';
+---
+
+<DiagnosticoLayout title={`${d.title} · ${d.company}`}>
+  <div class="dg-app min-h-dvh flex flex-col">
+    <!-- Encabezado -->
+    <header class="sticky top-0 z-30 bg-dg-canvas border-b border-dg-line">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
+        <img src="/logos/logo-dark.png" alt="4Clover Technology" width="110" height="40" class="h-8 w-auto dark:hidden" />
+        <img src="/logos/logo-light.png" alt="4Clover Technology" width="110" height="40" class="h-8 w-auto hidden dark:block" />
+        <span class="hidden sm:block h-6 w-px bg-dg-line"></span>
+        <span class="hidden sm:block text-sm text-dg-muted truncate">{d.title}</span>
+        <div class="ml-auto flex items-center gap-1 sm:gap-3">
+          <span id="dg-save" class="hidden items-center gap-1.5 text-xs text-dg-muted" aria-live="polite"></span>
+          <span class="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-dg-muted">
+            <Icon name="lock" class="w-3.5 h-3.5" /> Respuestas cifradas
+          </span>
+          <button
+            type="button"
+            id="dg-theme"
+            class="inline-flex items-center justify-center w-10 h-10 rounded-full text-dg-muted hover:text-dg-ink hover:bg-dg-sunken transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand"
+            aria-label="Cambiar entre tema claro y oscuro"
+          >
+            <Icon name="moon" class="w-5 h-5 dark:hidden" />
+            <Icon name="sun" class="w-5 h-5 hidden dark:block" />
+          </button>
+        </div>
+      </div>
+      <div id="dg-progress-track" class="h-[3px] bg-dg-line/70" hidden>
+        <div id="dg-progress" class="h-full origin-left scale-x-0 bg-dg-brand transition-transform duration-300 ease-out"></div>
+      </div>
+    </header>
+
+    <main class="flex-1">
+      <!-- ============ BIENVENIDA ============ -->
+      <section id="dg-intro" class="max-w-6xl mx-auto sm:px-6 sm:py-8 lg:py-12 grid lg:grid-cols-[1.05fr_1fr] gap-0 sm:gap-6 lg:gap-12 items-start">
+        <div class="dg-contours relative overflow-hidden bg-dg-hero text-dg-on-hero sm:rounded-3xl px-5 py-10 sm:p-10 lg:p-12 lg:min-h-[34rem] flex flex-col">
+          <p class="inline-flex self-start items-center gap-2 rounded-full bg-dg-on-hero/10 px-3 py-1 text-xs font-semibold tracking-wide">
+            <Icon name="shield" class="w-3.5 h-3.5" />
+            Preparado para {d.company}
+          </p>
+          <h1 class="mt-6 font-display text-[2.35rem] leading-[1.05] sm:text-5xl lg:text-[3.4rem] font-semibold tracking-tight text-balance">
+            {d.title}
+          </h1>
+          <p class="mt-4 text-base sm:text-lg text-dg-on-hero/80 max-w-md text-pretty">{d.subtitle}</p>
+
+          <dl class="mt-8 grid grid-cols-3 gap-4 max-w-md text-sm">
+            <div>
+              <dt class="text-dg-on-hero/65">Tiempo</dt>
+              <dd class="mt-0.5 font-semibold">{d.estimate}</dd>
+            </div>
+            <div>
+              <dt class="text-dg-on-hero/65">Bloques</dt>
+              <dd class="mt-0.5 font-semibold">{d.blocks.length + 1}</dd>
+            </div>
+            <div>
+              <dt class="text-dg-on-hero/65">Preguntas</dt>
+              <dd class="mt-0.5 font-semibold tabular-nums">{totalQuestions}</dd>
+            </div>
+          </dl>
+
+          <div class="mt-10 lg:mt-auto pt-2 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              id="dg-start"
+              class="inline-flex items-center justify-center gap-2 min-h-12 px-6 rounded-xl bg-dg-on-hero text-dg-hero text-[0.95rem] font-semibold transition-transform duration-150 hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-on-hero focus-visible:ring-offset-2 focus-visible:ring-offset-dg-hero"
+            >
+              <span id="dg-start-label">Comenzar</span>
+              <Icon name="arrowRight" class="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              id="dg-reset"
+              class="inline-flex items-center gap-2 min-h-12 px-4 rounded-xl text-sm font-semibold text-dg-on-hero/85 hover:text-dg-on-hero hover:bg-dg-on-hero/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-on-hero"
+              hidden
+            >
+              <Icon name="rotate" class="w-4 h-4" />
+              <span>Empezar de nuevo</span>
+            </button>
+          </div>
+          <p id="dg-draft-note" class="mt-3 text-xs text-dg-on-hero/70" hidden></p>
+        </div>
+
+        <div class="px-5 py-8 sm:px-0 lg:py-4">
+          <h2 class="text-lg font-semibold text-dg-ink">Antes de empezar</h2>
+          <p class="mt-2 text-dg-muted leading-relaxed max-w-prose">{d.purpose}</p>
+
+          <h3 class="mt-7 text-sm font-semibold text-dg-ink">Cómo responder</h3>
+          <p class="mt-1.5 text-sm text-dg-muted leading-relaxed max-w-prose">{d.howTo}</p>
+          <dl class="mt-4 grid grid-cols-[4.5rem_1fr] gap-x-3 gap-y-2 text-sm">
+            {
+              SCALE.map((s) => (
+                <>
+                  <dt class="inline-flex items-center justify-center h-7 rounded-lg border border-dg-line bg-dg-surface font-medium text-dg-ink">
+                    {s.label}
+                  </dt>
+                  <dd class="self-center text-dg-muted">{s.hint}</dd>
+                </>
+              ))
+            }
+          </dl>
+
+          <ul class="mt-8 space-y-4 text-sm">
+            <li class="flex gap-3">
+              <span class="shrink-0 grid place-items-center w-8 h-8 rounded-lg bg-dg-brand-soft text-dg-brand"><Icon name="lock" class="w-4 h-4" /></span>
+              <p class="text-dg-muted leading-relaxed"><strong class="font-semibold text-dg-ink">Cifrado en tu navegador.</strong> Las respuestas se cifran antes de salir de este equipo; solo el equipo de 4Clover puede abrirlas.</p>
+            </li>
+            <li class="flex gap-3">
+              <span class="shrink-0 grid place-items-center w-8 h-8 rounded-lg bg-dg-brand-soft text-dg-brand"><Icon name="device" class="w-4 h-4" /></span>
+              <p class="text-dg-muted leading-relaxed"><strong class="font-semibold text-dg-ink">Puedes pausar.</strong> El avance se guarda solo en este navegador y se borra al enviar.</p>
+            </li>
+            <li class="flex gap-3">
+              <span class="shrink-0 grid place-items-center w-8 h-8 rounded-lg bg-dg-brand-soft text-dg-brand"><Icon name="shield" class="w-4 h-4" /></span>
+              <p class="text-dg-muted leading-relaxed"><strong class="font-semibold text-dg-ink">No es una auditoría.</strong> No pedimos contraseñas, IPs ni documentos. Si algo es confidencial, basta con marcar la opción.</p>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- ============ CUESTIONARIO ============ -->
+      <div id="dg-wizard" class="max-w-6xl mx-auto px-4 sm:px-6 pt-5 lg:pt-10 lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-12" hidden>
+        <nav aria-label="Secciones del cuestionario" class="hidden lg:block">
+          <ol class="sticky top-24 space-y-0.5 pb-10">
+            {
+              steps.map((s) => (
+                <li>
+                  <a
+                    href={`#${s.id}`}
+                    data-nav={s.id}
+                    class="group flex items-center gap-3 rounded-lg px-2.5 py-2 text-sm text-dg-muted transition-colors hover:bg-dg-sunken hover:text-dg-ink aria-[current=step]:bg-dg-brand-soft aria-[current=step]:text-dg-ink aria-[current=step]:font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand"
+                  >
+                    <span
+                      data-nav-mark
+                      class="shrink-0 grid place-items-center w-6 h-6 rounded-full border border-dg-line bg-dg-surface text-[0.7rem] font-semibold tabular-nums text-dg-muted transition-colors data-[done=true]:bg-dg-brand data-[done=true]:border-dg-brand data-[done=true]:text-dg-on-brand"
+                    >
+                      <span data-nav-num>{s.n || '·'}</span>
+                      <Icon name="check" class="hidden w-3.5 h-3.5" />
+                    </span>
+                    <span class="flex-1 truncate">{s.label}</span>
+                    <span data-nav-count class="text-xs font-normal tabular-nums text-dg-muted" />
+                  </a>
+                </li>
+              ))
+            }
+          </ol>
+        </nav>
+
+        <div class="min-w-0">
+          <!-- Navegación móvil -->
+          <div class="lg:hidden mb-6">
+            <label for="dg-jump" class="sr-only">Ir a una sección</label>
+            <div class="relative">
+              <select
+                id="dg-jump"
+                class="w-full appearance-none rounded-xl border border-dg-line bg-dg-surface pl-3.5 pr-10 py-2.5 text-sm font-medium text-dg-ink focus:outline-none focus:ring-2 focus:ring-dg-brand/30"
+              >
+                {steps.map((s) => <option value={s.id}>{s.n ? `${s.n}. ${s.label}` : s.label}</option>)}
+              </select>
+              <Icon name="down" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dg-muted" />
+            </div>
+          </div>
+
+          <form id="dg-form" novalidate autocomplete="off" class="relative">
+            <!-- Trampa anti-spam (Formspree descarta envíos con este campo lleno) -->
+            <div aria-hidden="true" class="absolute -left-[9999px] top-0 w-px h-px overflow-hidden">
+              <label>No completar <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" /></label>
+            </div>
+
+            <!-- Identificación -->
+            <section data-step="identificacion" aria-labelledby="h-identificacion" hidden>
+              <header class="mb-6">
+                <p class={eyebrow}>Antes de los bloques</p>
+                <h2 id="h-identificacion" tabindex="-1" class={h2}>Identificación</h2>
+                <p class="mt-2 text-dg-muted max-w-prose">Para saber quién responde y a quién entregar el diagnóstico.</p>
+              </header>
+              <div class={`${panel} p-5 sm:p-7 grid sm:grid-cols-2 gap-x-5 gap-y-5`}>
+                <div class="sm:col-span-2">
+                  <label class={label} for="i-empresa">Empresa / razón social</label>
+                  <input id="i-empresa" name="i-empresa" type="text" maxlength="200" class={field} autocomplete="organization" />
+                </div>
+                <div>
+                  <label class={label} for="i-nombre">Nombre <span class="text-dg-danger">*</span></label>
+                  <input id="i-nombre" name="i-nombre" type="text" maxlength="200" class={field} autocomplete="name" aria-describedby="e-nombre" required />
+                  <p id="e-nombre" class="mt-1.5 text-xs text-dg-danger" hidden>Indica tu nombre.</p>
+                </div>
+                <div>
+                  <label class={label} for="i-cargo">Cargo</label>
+                  <input id="i-cargo" name="i-cargo" type="text" maxlength="200" class={field} autocomplete="organization-title" placeholder="Ej.: Gerente de administración" />
+                </div>
+                <div>
+                  <label class={label} for="i-correo">Correo <span class="text-dg-danger">*</span></label>
+                  <input id="i-correo" name="i-correo" type="email" maxlength="200" inputmode="email" class={field} autocomplete="email" aria-describedby="e-correo" required />
+                  <p id="e-correo" class="mt-1.5 text-xs text-dg-danger" hidden>Revisa el correo (ej.: nombre@empresa.cl).</p>
+                </div>
+                <div>
+                  <label class={label} for="i-telefono">Teléfono <span class="font-normal text-dg-muted">(opcional)</span></label>
+                  <input id="i-telefono" name="i-telefono" type="tel" maxlength="40" inputmode="tel" class={field} autocomplete="tel" placeholder="+56 9 ..." />
+                </div>
+                <p class="sm:col-span-2 text-xs text-dg-muted">
+                  La fecha se registra automáticamente al enviar.
+                </p>
+              </div>
+            </section>
+
+            <!-- Bloques 1 a 10 -->
+            {
+              d.blocks.map((b) => (
+                <section data-step={`bloque-${b.number}`} aria-labelledby={`h-b${b.number}`} hidden>
+                  <header class="mb-6">
+                    <p class={eyebrow}>Bloque {b.number} de {d.blocks.length + 1}</p>
+                    <h2 id={`h-b${b.number}`} tabindex="-1" class={h2}>
+                      {b.title}
+                    </h2>
+                    <p class="mt-2 text-dg-muted max-w-prose">{b.intro}</p>
+                  </header>
+                  {b.questions.some((q) => q.type === 'scale') && (
+                    <p class="mb-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-dg-muted">
+                      {SCALE.map((s) => (
+                        <span>
+                          <strong class="font-semibold text-dg-ink">{s.label}</strong> {s.hint.toLowerCase()}
+                        </span>
+                      ))}
+                    </p>
+                  )}
+                  <div class={`${panel} divide-y divide-dg-line overflow-hidden`}>
+                    {b.questions.map((q) => (
+                      <Question q={q} />
+                    ))}
+                  </div>
+                </section>
+              ))
+            }
+
+            <!-- 11A Prioridades -->
+            <section data-step="prioridades" aria-labelledby="h-prioridades" hidden>
+              <header class="mb-6">
+                <p class={eyebrow}>Bloque 11 · Parte A</p>
+                <h2 id="h-prioridades" tabindex="-1" class={h2}>{d.priorities.title}</h2>
+                <p class="mt-2 text-dg-muted max-w-prose">{d.priorities.intro}</p>
+              </header>
+              <p class="mb-3 text-xs text-dg-muted">Arrastra desde <Icon name="grip" class="inline w-3.5 h-3.5 -mt-0.5" /> o usa las flechas. Puedes agregar el porqué de cada uno.</p>
+              <ol id="dg-prio" class={`${panel} divide-y divide-dg-line overflow-hidden`}>
+                {
+                  d.priorities.domains.map((dom, i) => (
+                    <li data-domain={dom} class="flex items-start gap-2 sm:gap-3 px-2 py-3 sm:px-4 bg-dg-surface">
+                      <button
+                        type="button"
+                        class="dg-grip shrink-0 grid place-items-center w-9 h-9 rounded-lg text-dg-muted cursor-grab active:cursor-grabbing touch-none hover:bg-dg-sunken focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand"
+                        aria-label={`Arrastrar: ${dom}`}
+                        tabindex="-1"
+                      >
+                        <Icon name="grip" class="w-4 h-4" />
+                      </button>
+                      <span data-rank class="shrink-0 mt-1.5 grid place-items-center w-7 h-7 rounded-full bg-dg-brand-soft text-sm font-semibold tabular-nums text-dg-brand">
+                        {i + 1}
+                      </span>
+                      <div class="flex-1 min-w-0 pt-2">
+                        <p class="text-[0.95rem] font-medium leading-snug text-dg-ink">{dom}</p>
+                        <button
+                          type="button"
+                          class="dg-detail-toggle mt-1 inline-flex items-center gap-1 rounded -ml-1 px-1 text-xs font-medium text-dg-brand hover:underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand"
+                          aria-expanded="false"
+                          aria-controls={`why-${i}`}
+                        >
+                          <Icon name="plus" class="w-3.5 h-3.5" /> ¿Por qué?
+                        </button>
+                        <div id={`why-${i}`} class="mt-2 pr-1" hidden>
+                          <label class="sr-only" for={`w-${i}`}>Por qué: {dom}</label>
+                          <input
+                            id={`w-${i}`}
+                            name={`w-${dom}`}
+                            type="text"
+                            maxlength="500"
+                            class="w-full rounded-lg border border-dg-line bg-dg-canvas px-3 py-2 text-sm text-dg-ink placeholder:text-dg-muted/70 focus:outline-none focus:border-dg-brand focus:ring-2 focus:ring-dg-brand/25"
+                            placeholder="¿Por qué? / contexto (opcional)"
+                          />
+                        </div>
+                      </div>
+                      <div class="shrink-0 flex items-center">
+                        <button type="button" data-move="up" class="grid place-items-center w-9 h-9 rounded-lg text-dg-muted hover:text-dg-ink hover:bg-dg-sunken disabled:opacity-30 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand" aria-label={`Subir: ${dom}`}>
+                          <Icon name="up" class="w-4 h-4" />
+                        </button>
+                        <button type="button" data-move="down" class="grid place-items-center w-9 h-9 rounded-lg text-dg-muted hover:text-dg-ink hover:bg-dg-sunken disabled:opacity-30 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dg-brand" aria-label={`Bajar: ${dom}`}>
+                          <Icon name="down" class="w-4 h-4" />
+                        </button>
+                      </div>
+                    </li>
+                  ))
+                }
+              </ol>
+              <p id="dg-prio-live" class="sr-only" aria-live="polite"></p>
+            </section>
+
+            <!-- 11B Cierre -->
+            <section data-step="cierre" aria-labelledby="h-cierre" hidden>
+              <header class="mb-6">
+                <p class={eyebrow}>Bloque 11 · Parte B</p>
+                <h2 id="h-cierre" tabindex="-1" class={h2}>{d.closing.title}</h2>
+                <p class="mt-2 text-dg-muted max-w-prose">{d.closing.intro}</p>
+              </header>
+              <div class={`${panel} divide-y divide-dg-line overflow-hidden`}>
+                {d.closing.questions.map((q) => <Question q={q} />)}
+              </div>
+            </section>
+
+            <!-- Revisión y envío -->
+            <section data-step="revision" aria-labelledby="h-revision" hidden>
+              <header class="mb-6">
+                <p class={eyebrow}>Último paso</p>
+                <h2 id="h-revision" tabindex="-1" class={h2}>Revisión y envío</h2>
+                <p class="mt-2 text-dg-muted max-w-prose">
+                  Puedes enviar aunque queden preguntas sin responder; mientras más completo, más preciso el diagnóstico.
+                </p>
+              </header>
+
+              <div id="dg-review" class={`${panel} divide-y divide-dg-line overflow-hidden`}></div>
+
+              <div id="dg-errors" role="alert" class="mt-5 rounded-xl border border-dg-danger/40 bg-dg-danger-soft px-4 py-3 text-sm text-dg-ink" hidden></div>
+
+              <label class="mt-6 flex items-start gap-3 cursor-pointer max-w-prose">
+                <input id="dg-consent" name="consent" type="checkbox" class="mt-0.5 w-5 h-5 shrink-0 rounded border-dg-line text-dg-brand accent-[oklch(var(--dg-brand))] focus:ring-dg-brand" />
+                <span class="text-sm text-dg-muted leading-relaxed">
+                  Acepto que 4Clover Technology SpA use estas respuestas, incluidos mis datos de contacto, solo para elaborar el diagnóstico y contactarme sobre él.
+                </span>
+              </label>
+
+              <div class="mt-6 flex items-start gap-3 rounded-xl bg-dg-sunken px-4 py-3.5 text-sm text-dg-muted max-w-prose">
+                <Icon name="lock" class="w-4 h-4 mt-0.5 shrink-0 text-dg-brand" />
+                <p>
+                  Al enviar, tus respuestas se cifran en este navegador con la llave pública de 4Clover. Ni el servicio de formularios ni nadie en el camino puede leerlas.
+                </p>
+              </div>
+
+              <div class="mt-6 flex flex-wrap items-center gap-3">
+                <button type="button" id="dg-submit" class={`${btnPrimary} min-h-12 px-6 text-[0.95rem]`}>
+                  <span id="dg-submit-icon"><Icon name="send" class="w-4 h-4" /></span>
+                  <span id="dg-submit-label">Cifrar y enviar</span>
+                </button>
+                <span id="dg-submit-status" class="text-sm text-dg-muted" aria-live="polite"></span>
+              </div>
+
+              <div id="dg-fail" class="mt-5 rounded-xl border border-dg-line bg-dg-surface p-4 sm:p-5 text-sm max-w-prose" hidden>
+                <p class="font-semibold text-dg-ink flex items-center gap-2">
+                  <Icon name="alert" class="w-4 h-4 text-dg-danger" /> <span id="dg-fail-title">No pudimos enviar tus respuestas.</span>
+                </p>
+                <p id="dg-fail-text" class="mt-1.5 text-dg-muted leading-relaxed"></p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                  <button type="button" id="dg-retry" class={btnGhost}><Icon name="rotate" class="w-4 h-4" /> Reintentar</button>
+                  <button type="button" id="dg-download-enc" class={btnGhost} hidden><Icon name="download" class="w-4 h-4" /> Descargar respuesta cifrada</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Navegación entre pasos -->
+            <div
+              id="dg-stepnav"
+              class="sticky bottom-0 z-20 -mx-4 sm:mx-0 mt-8 px-4 sm:px-0 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-dg-canvas border-t border-dg-line flex items-center gap-3"
+            >
+              <button type="button" id="dg-prev" class={btnGhost}>
+                <Icon name="left" class="w-4 h-4" /><span>Anterior</span>
+              </button>
+              <span id="dg-stepinfo" class="mx-auto text-xs tabular-nums text-dg-muted"></span>
+              <button type="button" id="dg-next" class={btnPrimary}>
+                <span id="dg-next-label">Siguiente</span><Icon name="right" class="w-4 h-4" />
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- ============ RESULTADO ============ -->
+      <section id="dg-result" class="max-w-6xl mx-auto px-4 sm:px-6 py-10 lg:py-14" aria-labelledby="h-result" hidden>
+        <div class="flex items-start gap-4">
+          <span class="shrink-0 grid place-items-center w-11 h-11 rounded-full bg-dg-brand-soft text-dg-brand">
+            <Icon name="check" class="w-5 h-5" />
+          </span>
+          <div>
+            <p class={eyebrow}>Respuestas recibidas</p>
+            <h1 id="h-result" tabindex="-1" class="mt-1 font-display text-3xl sm:text-4xl font-semibold tracking-tight text-dg-ink focus:outline-none">
+              Gracias<span id="dg-r-name"></span>.
+            </h1>
+            <p class="mt-2 text-dg-muted max-w-prose">{d.thanks}</p>
+          </div>
+        </div>
+
+        <div class="mt-10 lg:mt-12 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-10 lg:gap-14 items-start">
+          <figure class="order-2 lg:order-1">
+            <div id="dg-radar" class="mx-auto max-w-[30rem]"></div>
+            <figcaption class="mt-2 text-center text-xs text-dg-muted">Madurez indicativa por bloque (0 a 100 %)</figcaption>
+          </figure>
+
+          <div class="order-1 lg:order-2">
+            <p class="text-sm text-dg-muted">Madurez general <span class="text-dg-muted/80">(indicativa)</span></p>
+            <p class="mt-1 text-2xl sm:text-3xl font-semibold tracking-tight text-dg-ink">
+              <span id="dg-r-level"></span> <span id="dg-r-overall" class="text-dg-muted font-medium"></span>
+            </p>
+            <div id="dg-r-scale" class="mt-4 grid grid-cols-4 gap-1.5"></div>
+            <p id="dg-r-level-text" class="mt-3 text-sm text-dg-muted max-w-prose"></p>
+
+            <h2 class="mt-9 text-sm font-semibold text-dg-ink">Por bloque</h2>
+            <ol id="dg-bars" class="mt-4 space-y-4"></ol>
+          </div>
+        </div>
+
+        <div id="dg-insights" class="mt-12 grid sm:grid-cols-3 gap-px rounded-2xl overflow-hidden border border-dg-line bg-dg-line"></div>
+
+        <div class="mt-10 flex flex-wrap items-center gap-3">
+          <button type="button" id="dg-print-btn" class={btnPrimary}>
+            <Icon name="printer" class="w-4 h-4" /> Descargar copia (PDF)
+          </button>
+          <a id="dg-calendly" href={CALENDLY_URL} target="_blank" rel="noopener noreferrer" class={btnGhost}>
+            <Icon name="calendar" class="w-4 h-4" /> Agendar revisión de 30 min
+          </a>
+        </div>
+        <p class="mt-4 text-xs text-dg-muted max-w-prose">
+          El puntaje es una referencia calculada con tus propias respuestas; "No sé" cuenta como brecha. Por seguridad, tus respuestas ya no quedan guardadas en este dispositivo: si quieres una copia, descárgala ahora.
+        </p>
+      </section>
+    </main>
+
+    <footer class="border-t border-dg-line">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap items-center justify-between gap-2 text-xs text-dg-muted">
+        <span>© 4Clover Technology SpA</span>
+        <a href={`mailto:${CONTACT_EMAIL}`} class="hover:text-dg-ink underline-offset-4 hover:underline">{CONTACT_EMAIL}</a>
+      </div>
+    </footer>
+  </div>
+
+  <div id="dg-print"></div>
+
+  <script type="application/json" id="dg-config" set:html={configJson} />
+  <script>
+    import '../../scripts/diagnostico';
+  </script>
+</DiagnosticoLayout>

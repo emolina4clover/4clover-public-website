@@ -62,6 +62,37 @@ El sitio estará disponible en **http://localhost:80**.
 ### 5. URL del sitio (SEO/Sitemap)
 - Editar `site` en `astro.config.mjs` con el dominio real
 
+## Auto-diagnóstico de ciberseguridad (páginas privadas)
+
+Cuestionarios que se comparten **solo por correo**: `/diagnostico/<cliente>-<token>/`.
+Hoy existe uno: `/diagnostico/triconos-mineros-yjbr6uvi32uq/`.
+
+**Cómo llegan las respuestas.** El navegador del cliente cifra todo (RSA-OAEP-4096 + AES-256-GCM,
+Web Crypto) con la llave pública de 4Clover y lo envía a Formspree. Formspree y el correo solo ven un
+bloque `-----BEGIN 4CLOVER DIAGNOSTICO-----`; si el cifrado falla, no se envía nada.
+
+**Cómo leerlas.**
+1. Abre `tools/visor-diagnostico.html` con doble clic (funciona sin internet; no se publica).
+2. Carga la llave privada (`Documentos/4Clover/diagnostico-llave-privada.pem`).
+3. Pega el bloque del correo (o el correo completo) y pulsa *Descifrar*: reporte imprimible, CSV (Excel) o JSON.
+
+Alternativa por consola: `node scripts/diagnostico-descifrar.mjs <llave.pem> <correo.txt> [salida.json]`.
+
+**La llave privada.** Sin ella no se pueden leer las respuestas: guarda una copia en un lugar seguro
+(gestor de contraseñas o USB cifrado). Nunca la subas al repo ni al servidor. Para rotarla:
+`node scripts/diagnostico-llaves.mjs` y pega la nueva llave pública en `src/data/diagnosticos/index.ts`
+(las respuestas antiguas solo se abren con la llave antigua).
+
+**Privacidad de la página.** `noindex` (meta y header `X-Robots-Tag`), fuera del sitemap, URL con
+token aleatorio, CSP estricta (solo scripts propios; la única salida de datos permitida es Formspree),
+sin analítica ni scripts de terceros. El avance se guarda solo en el navegador del cliente y se borra al enviar.
+Para revocar un enlace, cambia el token del `slug` y vuelve a desplegar.
+
+**Nuevo cliente.** Copia `src/data/diagnosticos/triconos-mineros.ts`, ajusta textos y `slug`
+(token nuevo: `node -e "console.log(require('crypto').randomBytes(8).toString('hex'))"`) y agrégalo
+a la lista en `src/data/diagnosticos/index.ts`. El puntaje se calcula con el `score` de cada opción
+(Sí 1 · Parcial 0,5 · No / No sé 0 · N/A no cuenta); las preguntas informativas no puntúan.
+
 ## Estructura del Proyecto
 
 ```
@@ -69,12 +100,19 @@ public-website/
 ├── src/
 │   ├── components/         # Componentes Astro
 │   ├── layouts/Layout.astro
+│   ├── data/diagnosticos/  # Cuestionarios del auto-diagnóstico + llave pública
+│   ├── lib/diagnostico/    # Tipos, puntaje y cifrado
+│   ├── scripts/            # Lógica de cliente del auto-diagnóstico
 │   ├── pages/
 │   │   ├── index.astro     # Página principal
+│   │   ├── diagnostico/    # Páginas privadas (noindex)
 │   │   └── 404.astro
 │   └── styles/global.css
 ├── public/
+│   ├── js/theme-init.js    # Tema claro/oscuro sin script inline (CSP)
 │   └── logos/              # Logos (dark y light)
+├── scripts/                # Generar llaves / descifrar por consola
+├── tools/                  # Visor local de respuestas (no se publica)
 ├── Dockerfile
 ├── docker-compose.yml
 └── nginx.conf
