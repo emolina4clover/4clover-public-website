@@ -487,9 +487,7 @@ const h2 = 'mt-1.5 text-2xl sm:text-[1.75rem] font-semibold tracking-tight text-
     <footer class="border-t border-dg-line">
       <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 flex flex-wrap items-center justify-between gap-2 text-xs text-dg-muted">
         <span>© 4Clover Technology SpA</span>
-        <Fragment set:html="<!--email_off-->" />
-        <a href={`mailto:${CONTACT_EMAIL}`} class="hover:text-dg-ink underline-offset-4 hover:underline">{CONTACT_EMAIL}</a>
-        <Fragment set:html="<!--/email_off-->" />
+        <span><!--email_off--><a href={`mailto:${CONTACT_EMAIL}`} class="hover:text-dg-ink underline-offset-4 hover:underline">{CONTACT_EMAIL}</a><!--/email_off--></span>
       </div>
     </footer>
   </div>
